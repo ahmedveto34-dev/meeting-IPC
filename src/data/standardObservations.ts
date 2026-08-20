@@ -1,0 +1,989 @@
+import { StandardObservationItem } from "../types";
+
+export type { StandardObservationItem };
+
+export const OBSERVATION_CATEGORIES = [
+  "الكل",
+  "عيادات وفحوصات وجراحات العيون",
+  "غرفة العمليات والجراحة",
+  "التعقيم المركزي (CSSD)",
+  "العناية المركزة وحضانات الأطفال (ICU/NICU)",
+  "وحدة الغسيل الكلوي",
+  "عيادات الأسنان",
+  "المناظير ووحدة الجهاز الهضمي",
+  "العيادات الخارجية والفحوصات",
+  "المختبرات وبنك الدم",
+  "الأقسام الداخلية وغرف التنويم",
+  "غرف العزل الصحي",
+  "الصيدلية وتحضير الأدوية والمحاليل",
+  "أحواض ونظافة وتطهير الأيدي",
+  "النفايات الطبية والأدوات الحادة",
+  "الخدمات البيئية والمغسلة المركزية",
+  "المطبخ وسلامة الغذاء والتغذية",
+  "صحة العاملين والوخز المهني",
+  "محطة معالجة المياه وخزانات الشرب"
+] as const;
+
+export const STANDARD_OBSERVATIONS_LIBRARY: StandardObservationItem[] = [
+  // 🌟 قسم عيادات وفحوصات وجراحات العيون والرمد (Ophthalmology Clinics, Diagnostics & Surgeries) 🌟
+  {
+    id: "obs-eye-cln-1",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "عيادة فحص العيون (مصباح الشق Slit Lamp)",
+    observation: "عدم تطهير مواضع استناد الذقن والجبهة (Chin & Forehead Rest) ومقابض مصباح الشق بمسحات الكحول 70% وتغيير الورق الواقي بين كل مريض والآخر.",
+    recommendation: "مسح مسند الذقن والجبهة والمقابض بمسحة كحول 70% وتركها لتجف، وسحب الورقة الواقية ووضع ورقة نظيفة لكل مريض لمنع انتقال العدوى الفيروسية والجلدية.",
+    responsible: "تمريض عيادة العيون / الطبيب الفاحص",
+    duration: "فوري بين الحالات",
+    monitoringMethod: "الملاحظة المباشرة أثناء فحص العيادات الخارجية",
+    severity: "high",
+    standardRef: "American Academy of Ophthalmology (AAO) & CDC Infection Control in Eye Care"
+  },
+  {
+    id: "obs-eye-cln-2",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "جهاز قياس ضغط العين (Goldmann Tonometer)",
+    observation: "عدم تطهير رأس جهاز قياس ضغط العين (Tonometer Prism) بمسحة كحول 70% وتجفيفها التام قبل فحص المريض التالي، مما يعرض المرضى لخطر انتقال فيروسات الملتحمة الغدية (EKC).",
+    recommendation: "تطهير موشور التونوميتر بمسحة كحول أيزوبروبيلي 70% ومسحه جيداً وتركه يجف تماماً لمدة دقيقة، أو استخدام رؤوس قياس ضغط العين المعقمة أحادية الاستخدام (Disposable Prisms).",
+    responsible: "طبيب العيون المعالج / أخصائي البصريات",
+    duration: "فوري",
+    monitoringMethod: "التفتيش الميداني الدوري وسجل فحص التونوميتر",
+    severity: "critical",
+    standardRef: "CDC Guidelines for Prevention of Adenoviral Keratoconjunctivitis in Eye Care"
+  },
+  {
+    id: "obs-eye-cln-3",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "صيدلية عيادة العيون وغرف التوسيع",
+    observation: "استخدام زجاجات قطرات العيون المتعددة الجرعات (توسيع حدقة / تخدير / صبغة) لعدة مرضى دون تدوين تاريخ وساعة الفتح، أو ملامسة طرف القطارة لأجفان ورموش المريض أثناء التقطير.",
+    recommendation: "استخدام القطرات الفردية أحادية الجرعة (Minims) كلما أمكن، أو تدوين تاريخ وساعة الفتح على العبوات المتعددة والتخلص منها بعد 28 يوماً كحد أقصى، مع منع ملامسة طرف القطارة لعين المريض نهائياً (على بعد 2 سم).",
+    responsible: "تمريض عيادة العيون / الصيدلي الإكلينيكي",
+    duration: "فوري",
+    monitoringMethod: "التفتيش اليومي على قطرات العيون المفتوحة وسجل تواريخ الفتح",
+    severity: "critical",
+    standardRef: "Safe Ophthalmic Medication Administration & Multidose Eye Drop Policy"
+  },
+  {
+    id: "obs-eye-cln-4",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة فحص زاوية وقاع العين",
+    observation: "عدم إجراء التطهير عالي المستوى (HLD) لعدسات فحص قاع العين الملامسة للقرنية (Gonioscopy & 3-Mirror Lenses & Fundus Contact Lenses) وشطفها بالماء المعقم وتجفيفها بعد الاستخدام.",
+    recommendation: "غسل العدسات بالماء والمنظف اللطيف ثم غمرها في مطهر عالي المستوى معتمد وشطفها بماء معقم وتجفيفها بقطن طبي نظيف وحفظها في حافظة معقمة وجافة.",
+    responsible: "طبيب العيون / تمريض العيادات التخصصية",
+    duration: "يوم واحد",
+    monitoringMethod: "مراجعة إجراءات تطهير العدسات وسجل فحص الأدوات الملامسة للعين",
+    severity: "high",
+    standardRef: "Disinfection of Diagnostic Contact Lenses in Ophthalmology"
+  },
+  {
+    id: "obs-eye-cln-5",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "عيادات فحص القرنية وقرح العين",
+    observation: "ترطيب أشرطة صبغة الفلورسين (Fluorescein Strips) بمحاليل ملحية مفتوحة مسبقاً مجهولة تاريخ الفتح أو استخدام زجاجات قطرة فلورسين سائلة متعددة الاستخدام.",
+    recommendation: "استخدام أشرطة فلورسين فردية معقمة وترطيبها فقط بقطرة واحدة من محلول ملحي معقم أحادي الجرعة (Single-use Saline Unit) لكل مريض لمنع تلوث القرنية ببكتيريا الزوائف (Pseudomonas).",
+    responsible: "تمريض عيادة العيون / الطبيب المعالج",
+    duration: "فوري",
+    monitoringMethod: "المرور والتفتيش على مستلزمات فحص القرنية",
+    severity: "high",
+    standardRef: "Prevention of Pseudomonas Corneal Infections in Ophthalmic Practice"
+  },
+  {
+    id: "obs-eye-cln-6",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "وحدة الفحوصات المتقدمة (مجال الإبصار / OCT / تصوير القاع)",
+    observation: "عدم تطهير مساند الذقن والجبهة وحوامل الأيدي وغطاء العين التجريبي (Eye Patch) في أجهزة فحص مجال الإبصار (Visual Field) والتصوير الطبقي للشبكية (OCT) بين المرضى.",
+    recommendation: "مسح وتطهير كافة نقاط التماس بمطهر أسطح معتمد وسريع الجفاف واستخدام أغطية ورقية أو ضمادات عيون ورقية نظيفة ومفردة لكل مريض.",
+    responsible: "فني البصريات والفحوصات / تمريض وحدة الفحص",
+    duration: "فوري بين الفحوصات",
+    monitoringMethod: "سجل التطهير اليومي لأجهزة الفحوصات التشخيصية",
+    severity: "medium",
+    standardRef: "Infection Control for Ophthalmic Diagnostic Imaging & Perimetry"
+  },
+  {
+    id: "obs-eye-cln-7",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة الإجراءات الصغرى للعيون",
+    observation: "إعادة استخدام كانيولات تسليك القناة الدمعية (Lacrimal Syringing & Irrigation Cannulas) بعد الغسيل البسيط دون تعقيم بالأوتوكلاف، أو عدم استخدام كانيولات معقمة أحادية الاستخدام.",
+    recommendation: "إلزام الكادر باستخدام كانيولات تسليك مجرى الدموع المعقمة ذات الاستخدام الواحد (Single-Use Sterile Cannula) والتخلص منها فوراً في صندوق الأدوات الحادة بعد الاستخدام.",
+    responsible: "طبيب العيون / تمريض غرفة الإجراءات",
+    duration: "فوري",
+    monitoringMethod: "فحص رصيد الكانيولات المعقمة والتخلص الآمن منها",
+    severity: "critical",
+    standardRef: "Aseptic Technique in Minor Ophthalmic Procedures"
+  },
+  {
+    id: "obs-eye-cln-8",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة الليزر للعيون (YAG & Argon Laser)",
+    observation: "عدم تطهير عدسات الليزر الملامسة للعين (YAG Capsulotomy & Iridotomy Lenses) بعد جلسات الليزر أو وضعها على طاولات غير نظيفة بدون غطاء واقٍ.",
+    recommendation: "تنظيف عدسات الليزر وشطفها وتطهيرها بمطهر معتمد وشطفها بالماء المعقم وحفظها في علب الحماية الخاصة بها، وتطهير مسند جهاز الليزر بعد كل جلسة.",
+    responsible: "تمريض وحدة الليزر / أخصائي العيون",
+    duration: "يوم واحد",
+    monitoringMethod: "المرور والتفتيش على وحدة الليزر والعدسات الملحقة",
+    severity: "high",
+    standardRef: "Ophthalmic Laser Safety and Contact Lens Disinfection Protocol"
+  },
+  {
+    id: "obs-eye-cln-9",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "عيادة فحص وتجربة العدسات اللاصقة",
+    observation: "تخزين العدسات اللاصقة التشخيصية التجريبية (Diagnostic Trial Contact Lenses) في محاليل ملحية راكدة دون تنظيف إنزيمي وتطهير دوري لحافظات العدسات.",
+    recommendation: "تنظيف العدسات بمحلول إنزيمي وتطهيرها ببيروكسيد الهيدروجين المعادل أو استخدام عدسات تجريبية ذات الاستخدام الواحد (Daily Disposable) لمنع عدوى الأميبا الحرة (Acanthamoeba).",
+    responsible: "أخصائي البصريات / تمريض العيادة",
+    duration: "يومان",
+    monitoringMethod: "التفتيش على كابينة العدسات اللاصقة ومحاليل التطهير",
+    severity: "high",
+    standardRef: "Contact Lens Disinfection and Storage Safety Guidelines"
+  },
+  {
+    id: "obs-eye-cln-10",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "مصباح الشق بالعيادات الخارجية",
+    observation: "عدم وجود أو تلف الحاجز البلاستيكي الشفاف الواقي من الرذاذ التنفسي (Breath Shield) المثبت على مصباح الشق بين الطبيب والمريض أو عدم مسحه بين الكشوفات.",
+    recommendation: "تركيب حاجز أكريليكي شفاف سليم بين الطبيب والمريض ومسحه بمطهر متوافق بعد فحص كل مريض للحد من انتقال الرذاذ التنفسي أثناء الفحص المباشر.",
+    responsible: "مسؤول السلامة والصيانة / تمريض العيادات",
+    duration: "يومين",
+    monitoringMethod: "المرور الميداني وفحص حواجز الرذاذ بمصابيح الشق",
+    severity: "medium",
+    standardRef: "AAO Slit Lamp Breath Shield and Droplet Infection Recommendations"
+  },
+  {
+    id: "obs-eye-cln-11",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "عيادة العيون وحالات الرمد الحاد",
+    observation: "عدم ارتداء القفازات الطبية وتطهير الأيدي فوراً عند فحص المرضى المصابين بإفرازات صديدية أو التهاب الملتحمة الفيروسي الحاد شديد العدوى.",
+    recommendation: "إلزام الكادر بارتداء القفازات ونظارات الحماية وغسل وفرك الأيدي بالكحول قبل وبعد فحص كل حالة إفرازات عينية وتطهير المقعد فوراً بمطهر واسع المدى.",
+    responsible: "أطباء العيون / تمريض العيادات الخارجية",
+    duration: "فوري",
+    monitoringMethod: "الملاحظة السريرية أثناء استقبال حالات الرمد المعدية",
+    severity: "high",
+    standardRef: "Standard and Contact Precautions for Infectious Conjunctivitis"
+  },
+
+  // 🌟 جراحات وعمليات العيون (Ophthalmic Surgeries: Cataract, Vitrectomy, Injections & LASIK) 🌟
+  {
+    id: "obs-eye-surg-1",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة عمليات جراحة العيون (OR)",
+    observation: "عدم الالتزام بوضع محلول بوفيدون يودين 5% (5% Povidone-Iodine) في كيس الملتحمة لمدة 3 دقائق كاملة قبل البدء في جراحة العيون (المياه البيضاء / الشبكية / الحقن).",
+    recommendation: "التطبيق الإلزامي للبيتادين العيني 5% على سطح العين وكيس الملتحمة وتركه لمدة 3 دقائق على الأقل قبل الشق الجراحي باعتباره الركيزة الأساسية لمنع التهاب باطن العين (Endophthalmitis).",
+    responsible: "جراح العيون / تمريض العمليات المعقم",
+    duration: "فوري لكل حالة",
+    monitoringMethod: "مراجعة قائمة التحقق الجراحية للعيون (Surgical Safety Checklist)",
+    severity: "critical",
+    standardRef: "ESCRS / AAO Endophthalmitis Prevention Guidelines in Cataract Surgery"
+  },
+  {
+    id: "obs-eye-surg-2",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة تنظيف آلات جراحة العيون وقبضة الفاكو",
+    observation: "تأخر شطف وتفريغ قنوات قبضة تفتيت المياه البيضاء (Phacoemulsification Handpiece Lumens) وخراطيم الري والشفط (I/A Tubing) بالماء المقطر المعقم فور انتهاء العملية مما يسبب جفاف السوائل والمخاط داخل القنوات.",
+    recommendation: "الشطف الفوري لقنوات الفاكو بـ 120-200 مل من الماء المقطر المعقم الخالي من السموم (Sterile Distilled Water) فور انتهاء الجراحة لمنع ترسب البروتينات وتكون السموم الداخلية (Endotoxins).",
+    responsible: "تمريض العمليات / فني تعقيم آلات العيون",
+    duration: "فوري بعد كل عملية",
+    monitoringMethod: "الملاحظة المباشرة لخطوات معالجة قبضة الفاكو",
+    severity: "critical",
+    standardRef: "ASCRS & AORN Guidelines for Cleaning and Processing Phacoemulsification Handpieces"
+  },
+  {
+    id: "obs-eye-surg-3",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة عمليات العيون ووحدة التعقيم",
+    observation: "استخدام منظفات إنزيمية مركزة دون شطف وافر بالماء المعقم لآلات الغرفة الأمامية للعين، أو استخدام محاليل أو أدوية تحتوي على مواد حافظة (Preservatives) داخل العين مسببة خطر متلازمة الجزء الأمامي السامة (TASS).",
+    recommendation: "حظر استخدام المنظفات الإنزيمية في آلات الغرفة الأمامية ما لم يوصِ بها المصنع مع شطفها بـ 3 دورات ماء معقم، والتأكد التام من خلو كافة الأدوية والمحاليل المحقونة داخل العين من أي مواد حافظة (Preservative-Free).",
+    responsible: "رئيس قسم العيون / مسؤول التعقيم / الصيدلي الإكلينيكي",
+    duration: "فوري",
+    monitoringMethod: "مراجعة بروتوكول الوقاية من متلازمة TASS وسجلات المحاليل الجراحية",
+    severity: "critical",
+    standardRef: "CDC / ASCRS / AAO Toxic Anterior Segment Syndrome (TASS) Prevention Protocol"
+  },
+  {
+    id: "obs-eye-surg-4",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة عمليات العيون ووحدة التعقيم السريع",
+    observation: "الاعتماد الروتيني على دورات التعقيم السريع المفتوح (Flash / Immediate-Use Steam Sterilization IUSS) لآلات جراحة العيون بين الحالات دون تغليف ودون داعٍ طارئ.",
+    recommendation: "حظر التعقيم السريع الروتيني وتوفير أطقم جراحية كافية (Trays) تخضع للتعقيم والتغليف الكامل المسبق في وحدة التعقيم المركزي مع مؤشرات كيميائية وبيولوجية معتمدة.",
+    responsible: "رئيس قسم العمليات / مدير التعقيم المركزي",
+    duration: "فوري",
+    monitoringMethod: "مراجعة سجلات تشغيل الأوتوكلاف بالعمليات ومنع التعقيم الفلاش",
+    severity: "critical",
+    standardRef: "AAMI ST79 & ASCRS Recommendations on Sterilization of Ophthalmic Instruments"
+  },
+  {
+    id: "obs-eye-surg-5",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "الميكروسكوب الجراحي للعيون (Ophthalmic Surgical Microscope)",
+    observation: "عدم تركيب أغطية معقمة كاملة (Sterile Microscope Drapes) أو عدم تغيير المقابض المعقمة (Sterile Handle Caps) للميكروسكوب الجراحي بين كل حالة جراحية وأخرى.",
+    recommendation: "تركيب مقابض معقمة بالأوتوكلاف لكل عملية ومسح عدسات وأذرع الميكروسكوب بمطهر معتمد ذو نطاق واسع لضمان عدم تساقط الميكروبات في الحقل الجراحي المعقم.",
+    responsible: "تمريض العمليات / فني الأجهزة الطبية",
+    duration: "فوري بين العمليات",
+    monitoringMethod: "قائمة فحص تجهيز الميكروسكوب الجراحي قبل بدء الحالة",
+    severity: "high",
+    standardRef: "Surgical Draping and Equipment Asepsis Standards in Ophthalmic Surgery"
+  },
+  {
+    id: "obs-eye-surg-6",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة حقن الجسم الزجاجي (Intravitreal Injections - Anti-VEGF)",
+    observation: "عدم ارتداء الجراح والتمريض والمريض للكمامة الجراحية أثناء إجراء الحقن داخل الجسم الزجاجي (Anti-VEGF/Steroids)، أو التحدث أثناء فتح الإبرة والحقن مما يرفع خطر التلوث البكتيري الفموي (Streptococcus Endophthalmitis).",
+    recommendation: "الالتزام الصارم بارتداء الكمامة الجراحية لجميع المتواجدين مع التزام الصمت أثناء إجراء الحقن، واستخدام فتاحة جفون معقمة (Sterile Speculum) وتطهير العين بالبوفيدون يودين 5%.",
+    responsible: "طبيب العيون المنفذ للحقن / تمريض غرفة الحقن",
+    duration: "فوري",
+    monitoringMethod: "المراقبة الميدانية المباشرة لجلسات الحقن داخل العين ومعدل المضاعفات",
+    severity: "critical",
+    standardRef: "American Society of Retina Specialists (ASRS) Intravitreal Injection Safety Guidelines"
+  },
+  {
+    id: "obs-eye-surg-7",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "طاولة تحضير محاليل الري الجراحي (BSS)",
+    observation: "استخدام زجاجة محلول الري المتوازن داخل العين (Balanced Salt Solution - BSS) لأكثر من مريض، أو عدم فحص الزجاجة بصرياً للتحقق من نقائها وخلوها من الشوائب والترسبات ورقم التشغيلة قبل فتحها.",
+    recommendation: "تخصيص عبوة BSS جديدة لكل مريض والتخلص من المتبقي فور انتهاء الجراحة، والتحقق البصري المزدوج من تاريخ الصلاحية ورقم التشغيلة ورقم التسجيل.",
+    responsible: "تمريض العمليات / جراح العيون",
+    duration: "فوري لكل حالة",
+    monitoringMethod: "مراجعة سجل استهلاك المحاليل الجراحية للعيون",
+    severity: "critical",
+    standardRef: "Single-Use Intraocular Irrigating Solution Standards"
+  },
+  {
+    id: "obs-eye-surg-8",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "صواني الآلات الميكروسكوبية الدقيقة للعيون",
+    observation: "وضع ملاقط ومقصات وسكاكين العيون الميكروسكوبية الدقيقة مكدسة في سلال الغسيل أو بدون أغطية سيليكون واقية لرؤوسها الدقيقة مما يسبب انثناءها وتراكم الشوائب.",
+    recommendation: "رص الآلات الدقيقة في صواني مخصصة مزودة بأصابع سيليكون (Silicone Finger Mats) ووضع أغطية واقية لرؤوس الملاقط والمقصات لضمان وصول البخار وعدم تلفها.",
+    responsible: "فنيو التعقيم المركزي / تمريض العمليات",
+    duration: "يوم واحد",
+    monitoringMethod: "فحص الآلات تحت العدسة المكبرة قبل التغليف بالتعقيم",
+    severity: "high",
+    standardRef: "Care and Handling of Micro-Surgical Ophthalmic Instruments (AAMI)"
+  },
+  {
+    id: "obs-eye-surg-9",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "نظام التكييف والتهوية بغرفة عمليات العيون",
+    observation: "عدم مطابقة معايير جودة وضغط الهواء داخل غرفة عمليات العيون (هبوط فرق الضغط الموجب لأقل من +2.5 Pa، أو تجاوز نسبة الرطوبة 60% أو انخفاض دورات تغيير الهواء عن 20 دورة/ساعة).",
+    recommendation: "ضبط ومعايرة نظام التكييف المركزي لضمان ضغط موجب صارم وتغيير هواء لا يقل عن 20 دورة/ساعة مع فلاتر HEPA بنسبة كفاءة 99.97% وتوثيق الحرارة (20-24°C) والرطوبة (30-60%) يومياً.",
+    responsible: "مهندس الصيانة والتكييف / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "سجل قراءات حساسات الضغط والحرارة والرطوبة الرقمي",
+    severity: "critical",
+    standardRef: "ASHRAE Standard 170 & CBAHI Ventilation Requirements for Ophthalmic OR"
+  },
+  {
+    id: "obs-eye-surg-10",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "جراحة استئصال الجسم الزجاجي والشبكية (Vitrectomy)",
+    observation: "عدم التخلص الفوري من كاسيتات وأنابيب الشفط وقواطع الفيتريكتومي المعقمة أحادية الاستخدام (Single-Use Vitrectomy Cutters) بعد انتهاء جراحة الشبكية.",
+    recommendation: "الالتزام بالتخلص الفوري من كافة كاسيتات وأنابيب وخراطيم الفيتريكتومي في حاويات النفايات الطبية الخطرة وحظر إعادة معالجتها أو تعقيمها مطلقاً.",
+    responsible: "تمريض عمليات الشبكية / جراح العيون",
+    duration: "فوري بعد الجراحة",
+    monitoringMethod: "التفتيش على التخلص من مستهلكات جراحات الشبكية",
+    severity: "critical",
+    standardRef: "Single-Use Ophthalmic Device Regulations and Reprocessing Prohibitions"
+  },
+  {
+    id: "obs-eye-surg-11",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "وحدة عمليات تصحيح الإبصار بالليزر والليزك (LASIK Suite)",
+    observation: "عدم تعقيم مقابض جهاز الميكروكيراتوم (Microkeratome) بالأوتوكلاف بين الحالات، أو إعادة استخدام شفرة الميكروكيراتوم أو مخروط الفيمتوليزر (Femto Cone) لأكثر من عين/مريض.",
+    recommendation: "استخدام شفرات ميكروكيراتوم ومخاريط فيمتو معقمة ومفردة لكل مريض والتخلص منها فوراً في صندوق الأدوات الحادة، والتعقيم الكامل لمقابض وأدوات الليزك بين الحالات.",
+    responsible: "تمريض وحدة الليزك / جراح تصحيح الإبصار",
+    duration: "فوري لكل حالة",
+    monitoringMethod: "مراجعة سجلات استخدام شفرات الليزك وسجلات التعقيم",
+    severity: "critical",
+    standardRef: "Refractive Surgery Safety & Infection Prevention Guidelines"
+  },
+  {
+    id: "obs-eye-surg-12",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة الإفاقة ومتابعة ما بعد جراحة العيون",
+    observation: "استخدام أغطية عيون بلاستيكية (Eye Shields) وضمادات شاش غير معقمة أو لمسها بأيدٍ غير مطهرة عند وضع الغطاء الواقي على عين المريض بعد انتهاء الجراحة.",
+    recommendation: "استخدام واقيات عيون بلاستيكية شفافة معقمة ومفردة وشاش معقم وتثبيتها بشريط لاصق طبي هيبوالرجينيك بعد تطهير الأيدي بالكامل وتدريب المريض على عدم فرك العين.",
+    responsible: "تمريض الإفاقة / تمريض العمليات",
+    duration: "فوري لكل مريض",
+    monitoringMethod: "التفتيش على مستلزمات غيار وضمادات العيون في الإفاقة",
+    severity: "high",
+    standardRef: "Post-Ophthalmic Surgery Dressing and Eye Shield Asepsis"
+  },
+  {
+    id: "obs-eye-surg-13",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "غرفة عمليات جراحة العيون (OR)",
+    observation: "عدم الالتزام بفاصل زمني لا يقل عن 15 دقيقة بين عمليات العيون المتتالية لإجراء التنظيف والتطهير البيئي وتجديد هواء الغرفة بالضغط الموجب.",
+    recommendation: "تطبيق الفاصل الزمني الإلزامي (15 دقيقة) لتطهير سرير العمليات وجهاز الميكروسكوب والأسطح الملامسة بمطهر أسطح معتمد وسريع المفعول والسماح بتجديد الهواء قبل إدخال المريض التالي.",
+    responsible: "مشرف تمريض العمليات / كادر مكافحة العدوى",
+    duration: "فوري بين كل حالة وأخرى",
+    monitoringMethod: "مراجعة أوقات دخول وخروج المرضى في سجل العمليات الإلكتروني",
+    severity: "high",
+    standardRef: "Turnover Time and Environmental Cleaning Protocol in Eye Surgery"
+  },
+  {
+    id: "obs-eye-surg-14",
+    category: "عيادات وفحوصات وجراحات العيون",
+    location: "جدول وقائمة جراحات العيون",
+    observation: "إدراج حالات إصابات العيون النافذة الملوثة أو حالات قرح القرنية الصديدية في بداية أو منتصف قائمة عمليات المياه البيضاء وزراعة العدسات.",
+    recommendation: "جدولة الحالات الملوثة والإصابات المفتوحة في نهاية قائمة العمليات اليومية وإجراء تنظيف وتطهير طرفي شامل (Terminal Cleaning) لغرفة العمليات وأجهزتها بعدها مباشرة.",
+    responsible: "منسق جدول العمليات / رئيس قسم جراحة العيون",
+    duration: "فوري عند جدولة الحالات",
+    monitoringMethod: "مراجعة ترتيب قائمة العمليات اليومية وسجل التطهير الطرفي",
+    severity: "high",
+    standardRef: "Surgical Case Sequencing and Infection Risk Stratification in Ophthalmology"
+  },
+
+  // 1. غرفة العمليات والجراحة (Operating Room - OR)
+  {
+    id: "obs-or-1",
+    category: "غرفة العمليات والجراحة",
+    location: "غرفة العمليات الرئيسية",
+    observation: "عدم إعطاء الوقت الكافي (15 دقيقة) بين الحالات الجراحية للتنظيف والتطهير وتغيير هواء الغرفة.",
+    recommendation: "الالتزام الصارم بفاصل زمني لا يقل عن 15 دقيقة بعد خروج الحالة لتطهير الأسطح والمعدات وتجديد الهواء بالضغط الموجب.",
+    responsible: "مشرف تمريض العمليات / كادر التخدير",
+    duration: "فوري",
+    monitoringMethod: "مراجعة سجل العمليات والمرور الميداني المباشر",
+    severity: "high",
+    standardRef: "معايير سباهي CBAHI - قسم العمليات / CDC Guidelines"
+  },
+  {
+    id: "obs-or-2",
+    category: "غرفة العمليات والجراحة",
+    location: "غرفة العمليات",
+    observation: "تخزين كراتين ومستهلكات زائدة ومفتوحة داخل غرفة العمليات مسببة تجمع الأتربة وصعوبة التطهير.",
+    recommendation: "حظر إدخال الكراتين الورقية الخارجية وإدخال المستهلكات الخاصة بالعملية فقط في عربة مغلقة مخصصة.",
+    responsible: "مشرف تمريض العمليات / مسؤول الإمداد",
+    duration: "يوم واحد",
+    monitoringMethod: "التفتيش البيئي الصباحي",
+    severity: "medium",
+    standardRef: "اشتراطات وزارة الصحة لمكافحة العدوى بالعمليات"
+  },
+  {
+    id: "obs-or-3",
+    category: "غرفة العمليات والجراحة",
+    location: "غرفة العمليات",
+    observation: "عدم تطهير أجهزة الميكروسكوب وشاشات المراقبة وطاولات العمليات بين الحالات بمطهر معتمد.",
+    recommendation: "تطهير كافة الأسطح الملامسة والأجهزة الطبية بمطهر أسطح معتمد ذو نطاق واسع وزمن تلامس محدد (Contact Time).",
+    responsible: "فني الأجهزة / تمريض العمليات",
+    duration: "فوري",
+    monitoringMethod: "الفحص العشوائي بمسحات النظافة (ATP swabs)",
+    severity: "high",
+    standardRef: "دليل تطهير الأجهزة الطبية الحساسة"
+  },
+  {
+    id: "obs-or-4",
+    category: "غرفة العمليات والجراحة",
+    location: "جناح العمليات",
+    observation: "عدم الالتزام الكامل بارتداء أغطية الرأس الطبية وتغطية كامل الشعر أو ارتداء الماسك الجراحي بشكل غير محكم.",
+    recommendation: "الإلزام بتغطية كامل شعر الرأس واللحية وارتداء الكمام الجراحي فوق الأنف والفم بصورة محكمة قبل دخول المنطقة المعقمة.",
+    responsible: "رئيس قسم العمليات / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "الملاحظة المباشرة وتدقيق كاميرات الممر المعقم",
+    severity: "medium",
+    standardRef: "اشتراطات الزي الجراحي القياسي"
+  },
+  {
+    id: "obs-or-5",
+    category: "غرفة العمليات والجراحة",
+    location: "أبواب غرف العمليات",
+    observation: "ترك أبواب غرف العمليات مفتوحة أو متكررة الفتح بدون داعٍ أثناء إجراء الجراحة مما يخل بالضغط الموجب.",
+    recommendation: "إبقاء أبواب غرف العمليات مغلقة طوال فترة العملية والحد من حركة الدخول والخروج إلا للضرورة القصوى.",
+    responsible: "فريق التمريض / الجراح / كادر التخدير",
+    duration: "فوري",
+    monitoringMethod: "مراقبة حساسات الضغط وسجلات فتح الأبواب",
+    severity: "high",
+    standardRef: "CBAHI - معايير التهوية والضغط بغرف العمليات"
+  },
+  {
+    id: "obs-or-6",
+    category: "غرفة العمليات والجراحة",
+    location: "أحواض الغسيل الجراحي",
+    observation: "عدم الالتزام بزمن الغسيل الجراحي للأيدي (3-5 دقائق) قبل أول حالة وجفاف الأيدي غير السليم.",
+    recommendation: "إعادة تدريب الأطباء والتمريض على خطوات الغسيل الجراحي بمطهر الكلورهيكسيدين 4% أو الفرك الكحولي الجراحي المعتمد.",
+    responsible: "مسؤول مكافحة العدوى / مشرف العمليات",
+    duration: "3 أيام",
+    monitoringMethod: "جلسات التدقيق والملاحظة المباشرة (Hand Hygiene Audit)",
+    severity: "high",
+    standardRef: "WHO Surgical Hand Preparation Protocol"
+  },
+  {
+    id: "obs-or-7",
+    category: "غرفة العمليات والجراحة",
+    location: "تروللي التخدير",
+    observation: "ترك سرنجات الأدوية المخدرة والمهدئة معبأة بدون بطاقة تعريفية واضحة للاسم والتركيز وتاريخ وساعة السحب.",
+    recommendation: "إلزام كادر التخدير بوضع ملصقات ملونة ومعتمدة على كل سرنجة مدون عليها اسم الدواء، التركيز، وتاريخ ووقت السحب وتوقيع المسؤول.",
+    responsible: "رئيس قسم التخدير / صيدلي العمليات",
+    duration: "فوري",
+    monitoringMethod: "التفتيش المفاجئ على طاولات وترولليات التخدير",
+    severity: "critical",
+    standardRef: "معايير أمان الأدوية عالية الخطورة High-Alert Medications"
+  },
+
+  // 2. التعقيم المركزي (CSSD)
+  {
+    id: "obs-cssd-1",
+    category: "التعقيم المركزي (CSSD)",
+    location: "منطقة الاستلام والغسيل (Decontamination)",
+    observation: "عدم ارتداء معدات الوقاية الشخصية الكاملة (المريول البلاستيكي الثقيل، قفازات التنظيف السميكة، واقي الوجه Face Shield) أثناء غسيل الآلات.",
+    recommendation: "إلزام جميع فنيي التعقيم بارتداء PPE الثقيل الكامل بالمنطقة المتسخة لمنع التعرض لرذاذ السوائل البيولوجية والإصابات.",
+    responsible: "مشرف التعقيم المركزي / مسؤول السلامة المهنية",
+    duration: "فوري",
+    monitoringMethod: "المرور اليومي ومراجعة كاميرات CSSD",
+    severity: "critical",
+    standardRef: "معايير السلامة المهنية ومكافحة العدوى بالتعقيم المركزي"
+  },
+  {
+    id: "obs-cssd-2",
+    category: "التعقيم المركزي (CSSD)",
+    location: "منطقة التغليف والتعبئة",
+    observation: "عدم وضع المؤشر الكيميائي الداخلي (Chemical Indicator Class 5 / 6) داخل كل باكت جراحي قبل إغلاقه.",
+    recommendation: "الالتزام بوضع مؤشر كيميائي داخلي دمجوي بكل باكت وفحص خط اللحام الحراري (Sealing) والتأكد من جودته.",
+    responsible: "فنيو التعقيم المركزي / مشرف CSSD",
+    duration: "فوري",
+    monitoringMethod: "فحص عينات عشوائية من البواكت قبل دخول الأوتوكلاف",
+    severity: "high",
+    standardRef: "ISO 11140-1 / CBAHI Sterilization Standards"
+  },
+  {
+    id: "obs-cssd-3",
+    category: "التعقيم المركزي (CSSD)",
+    location: "مخزن الآلات المعقمة",
+    observation: "تخزين البواكت المعقمة ملامسة للحوائط أو مباشرة على الأرض أو قرب فتحات التكييف.",
+    recommendation: "رص البواكت المعقمة على أرفف شبكية غير قابلة للصدأ بارتفاع 25 سم عن الأرض، 50 سم عن السقف، و 5 سم عن الجدران مع ضبط حرارة المخزن (20-24°C) والرطوبة (30-60%).",
+    responsible: "مشرف التعقيم المركزي / الصيانة الطبية",
+    duration: "يوم واحد",
+    monitoringMethod: "مراجعة سجلات حرارة ورطوبة مخزن التعقيم يومياً",
+    severity: "medium",
+    standardRef: "اشتراطات تخزين الأدوات الطبية المعقمة"
+  },
+  {
+    id: "obs-cssd-4",
+    category: "التعقيم المركزي (CSSD)",
+    location: "غرفة أجهزة الأوتوكلاف",
+    observation: "عدم إجراء الفحص البيولوجي الأسبوعي / اليومي لجهاز التعقيم بالبخار أو عدم توثيق اختبار Bowie-Dick الصباحي.",
+    recommendation: "إجراء اختبار Bowie-Dick يومياً صباحاً، واختبار المؤشر البيولوجي (Biological Indicator) يومياً ومعه كل دورة تحتوي على غرسات (Implants) وتوثيق النتائج في السجل.",
+    responsible: "مشرف التعقيم المركزي / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "مراجعة سجل دورات التعقيم ونتائج الحضانات البيولوجية",
+    severity: "critical",
+    standardRef: "CBAHI Sterilizer Validation & Biological Monitoring"
+  },
+  {
+    id: "obs-cssd-5",
+    category: "التعقيم المركزي (CSSD)",
+    location: "مغسلة الآلات والغسيل بالموجات فوق الصوتية",
+    observation: "عدم تغيير محلول الإنزيم المنظف (Enzymatic Detergent) في جهاز الموجات فوق الصوتية (Ultrasonic) بصفة دورية أو استخدام تركيز غير مضبوط.",
+    recommendation: "تغيير محلول الإنزيم مرتين يومياً على الأقل أو عند تعكره، والالتزام بالنسب الموصى بها من الشركة المصنعة وتوثيق ذلك.",
+    responsible: "فني التعقيم المسؤول عن دورات التنظيف",
+    duration: "يوم واحد",
+    monitoringMethod: "سجل تحضير المحاليل ومؤشرات كفاءة التنظيف",
+    severity: "medium",
+    standardRef: "Medical Device Cleaning & Decontamination Standards"
+  },
+
+  // 3. العناية المركزة وحضانات الأطفال (ICU & NICU)
+  {
+    id: "obs-icu-1",
+    category: "العناية المركزة وحضانات الأطفال (ICU/NICU)",
+    location: "وحدة الرعاية المركزة (ICU)",
+    observation: "عدم الالتزام الكامل بحزمة الوقاية من الالتهاب الرئوي المصاحب للتنفس الصناعي (VAP Bundle) كرفع رأس السرير 30-45 درجة وغسيل الفم بالكلورهيكسيدين.",
+    recommendation: "تطبيق قائمة التدقيق اليومية لـ VAP Bundle: رفع رأس السرير، غسيل الفم بانتظام، تقييم الجاهزية للفطام اليومي، ونظام شفط الإفرازات المغلق.",
+    responsible: "طبيب العناية المركزة / مشرف تمريض ICU",
+    duration: "فوري",
+    monitoringMethod: "سجل تدقيق حزم مكافحة العدوى اليومي (VAP Checklist)",
+    severity: "high",
+    standardRef: "IHI Ventilator-Associated Pneumonia Prevention Bundle"
+  },
+  {
+    id: "obs-icu-2",
+    category: "العناية المركزة وحضانات الأطفال (ICU/NICU)",
+    location: "حضانات الأطفال المبتسرين (NICU)",
+    observation: "عدم تطهير الحواضن بجدول دوري أو استخدام مطهرات غير آمنة لحديثي الولادة تؤثر على أجهزة الاستشعار والجهاز التنفسي للطفل.",
+    recommendation: "تطهير الحواضن بمطهر معتمد خالٍ من الفينول مخصص للمبتسرين أسبوعياً وعند خروج كل طفل، وتغيير الفلاتر حسب توصيات الشركة.",
+    responsible: "مشرف تمريض NICU / مسؤول مكافحة العدوى",
+    duration: "يومين",
+    monitoringMethod: "سجل تطهير وصيانة الحواضن الدوري",
+    severity: "high",
+    standardRef: "NICU Infection Prevention & Incubator Disinfection Protocol"
+  },
+  {
+    id: "obs-icu-3",
+    category: "العناية المركزة وحضانات الأطفال (ICU/NICU)",
+    location: "العناية المركزة",
+    observation: "عدم تطهير منافذ القساطر الوريدية المركزية (Scrub the Hub) بالكحول 70% لمدة 15 ثانية قبل إعطاء الأدوية أو سحب العينات.",
+    recommendation: "تطبيق بروتوكول حك المنفذ (Scrub the Hub) بقوة بالكحول وتركها لتجف، وتغطية المنافذ بسدادات مطهرة (Alcohol caps).",
+    responsible: "تمريض العناية المركزة",
+    duration: "فوري",
+    monitoringMethod: "الملاحظة المباشرة أثناء إعطاء العلاجات ومعدل CLABSI",
+    severity: "critical",
+    standardRef: "Central Line-Associated Bloodstream Infection Prevention"
+  },
+  {
+    id: "obs-icu-4",
+    category: "العناية المركزة وحضانات الأطفال (ICU/NICU)",
+    location: "غرفة تحضير حليب الأطفال (NICU)",
+    observation: "عدم حفظ حليب الأم المشفوط أو التركيبات الصناعية بدرجة حرارة الثلاجة المحددة أو تجاوز وقت الصلاحية بدون تدوين بيانات الرضيع.",
+    recommendation: "التدوين الواضح لاسم الرضيع، تاريخ وساعة الشفط والتحضير، والحفظ في ثلاجة مخصصة بين (2-4°C) مع تسجيل الحرارة مرتين يومياً.",
+    responsible: "تمريض وحدة الرضاعة وتحضير الحليب",
+    duration: "يوم واحد",
+    monitoringMethod: "مراجعة ثلاجة الحليب وسجلات درجات الحرارة",
+    severity: "high",
+    standardRef: "Safe Preparation and Storage of Infant Formula Guidelines"
+  },
+
+  // 4. وحدة الغسيل الكلوي (Hemodialysis Unit)
+  {
+    id: "obs-hd-1",
+    category: "وحدة الغسيل الكلوي",
+    location: "صالة الغسيل الكلوي",
+    observation: "عدم الفصل التام بين ماكينات وأسرة مرضى الالتهاب الكبدي الوبائي (Hepatitis B / C) والمرضى السلبيين.",
+    recommendation: "تخصيص صالة وماكينات وتمريض مفرغ ومعزول بالكامل لمرضى HBsAg+ وفصل مرضى HCV+ طبقاً للسياسة الوطنية لمكافحة العدوى.",
+    responsible: "رئيس وحدة الكلى / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "المرور الميداني ومراجعة سجلات التحاليل المصلية للمرضى",
+    severity: "critical",
+    standardRef: "CDC Guidelines for Dialysis Safety & Infection Control"
+  },
+  {
+    id: "obs-hd-2",
+    category: "وحدة الغسيل الكلوي",
+    location: "ماكينات الغسيل الكلوي",
+    observation: "عدم إجراء دورة التطهير الحراري والكيميائي (Thermal/Chemical Disinfection) لماكينة الكلى بعد انتهاء جلسة كل مريض.",
+    recommendation: "تشغيل برنامج التطهير الداخلي المعتمد للماكينة وتطهير الأسطح الخارجية ومفتاح الضغط بمطهر معتمد ومسح شاشة اللمس.",
+    responsible: "تمريض وفنيو وحدة الكلى",
+    duration: "فوري",
+    monitoringMethod: "مراجعة سجل تشغيل ودورات تطهير الماكينات",
+    severity: "critical",
+    standardRef: "CBAHI Hemodialysis Machine Decontamination Standards"
+  },
+  {
+    id: "obs-hd-3",
+    category: "وحدة الغسيل الكلوي",
+    location: "محطة معالجة مياه الكلى",
+    observation: "تأخر أخذ العينات الدورية البكتيرية ومستوى السموم البكتيرية (Endotoxin levels) من مخرج محطة المياه ونقاط التوزيع.",
+    recommendation: "إلزام المختبر بسحب عينات مياه الغسيل الكلوي شهرياً لفحص العد البكتيري (<100 CFU/ml) والسموم الداخلية (<0.25 EU/ml) وتوثيق تقارير الفحص.",
+    responsible: "فني محطة المياه / استشاري الكلى / مسؤول مكافحة العدوى",
+    duration: "أسبوع",
+    monitoringMethod: "سجل نتائج مزارع محطة المياه والـ Endotoxin Testing",
+    severity: "critical",
+    standardRef: "AAMI / ANSI Water Quality Standards for Hemodialysis"
+  },
+
+  // 5. عيادات الأسنان (Dental Clinics)
+  {
+    id: "obs-den-1",
+    category: "عيادات الأسنان",
+    location: "عيادة طب وجراحة الأسنان",
+    observation: "عدم تعقيم قبضات الأسنان (Dental Handpieces) بالأوتوكلاف بين كل مريض والآخر والاكتفاء بالمسح الكحولي الخارجي.",
+    recommendation: "حظر المسح السطحي وإلزام الطبيب والتمريض بتزييت وتعقيم القبضات والتوربينات بالأوتوكلاف بعد كل مريض في باكت معقم.",
+    responsible: "طبيب الأسنان المعالج / تمريض العيادة",
+    duration: "فوري",
+    monitoringMethod: "فحص رصيد القبضات المعقمة وسجلات دورات CSSD",
+    severity: "critical",
+    standardRef: "CDC Guidelines for Infection Control in Dental Health-Care Settings"
+  },
+  {
+    id: "obs-den-2",
+    category: "عيادات الأسنان",
+    location: "كراسي الأسنان ووحدة التشغيل",
+    observation: "عدم وضع وتغيير الحواجز البلاستيكية العازلة (Barrier Films) على مقابض الإضاءة، شاشات التحكم، وخراطيم الشفط بين المرضى.",
+    recommendation: "تطبيق الحواجز العازلة على كافة الأسطح التي يلمسها الطبيب أثناء الإجراء وتغييرها مع تطهير السطح بعد كل مريض.",
+    responsible: "تمريض عيادة الأسنان",
+    duration: "فوري",
+    monitoringMethod: "المرور والتفتيش بين الجلسات",
+    severity: "medium",
+    standardRef: "Dental Surface Barrier Protection Protocols"
+  },
+  {
+    id: "obs-den-3",
+    category: "عيادات الأسنان",
+    location: "خطوط مياه كرسي الأسنان (DUWL)",
+    observation: "عدم عمل تفريغ مائي (Flushing) لخراطيم الهواء والماء وقبضات الأسنان لمدة 20-30 ثانية بين كل مريض ودقيقتين بداية اليوم.",
+    recommendation: "الالتزام بعمل Flushing يومي واستخدام مياه معالجة ومطهرات خطوط المياه المعتمدة لمنع تكوّن البيوفيلم (Biofilm).",
+    responsible: "تمريض عيادة الأسنان / طبيب الأسنان",
+    duration: "يوم واحد",
+    monitoringMethod: "الملاحظة الميدانية وفحص مزارع مياه الكراسي دورياً",
+    severity: "high",
+    standardRef: "ADA / CDC Dental Unit Waterline Management"
+  },
+
+  // 6. المناظير ووحدة الجهاز الهضمي (Endoscopy Unit)
+  {
+    id: "obs-endo-1",
+    category: "المناظير ووحدة الجهاز الهضمي",
+    location: "غرفة إعادة معالجة المناظير",
+    observation: "عدم إجراء اختبار التسريب (Leak Test) للمنظار المرن قبل وضعه في حوض الغسيل اليدوي أو جهاز التطهير الآلي (AER).",
+    recommendation: "إجراء اختبار كشف التسريب لكل منظار فوراً بعد الاستخدام لمنع تلف القنوات الداخلية وتسلل السوائل الملوثة.",
+    responsible: "فني مناظير الجهاز الهضمي / مسؤول التعقيم",
+    duration: "فوري",
+    monitoringMethod: "سجل إعادة معالجة المناظير ومراجعة الملاحظة المباشرة",
+    severity: "critical",
+    standardRef: "SGNA / ASGE Flexible Endoscope Reprocessing Guidelines"
+  },
+  {
+    id: "obs-endo-2",
+    category: "المناظير ووحدة الجهاز الهضمي",
+    location: "كابينة تخزين المناظير المعقمة",
+    observation: "تخزين المناظير المعقمة ملفوفة داخل حقائب مغلقة أو صمامات المنظار مركبة عليها بدلاً من تعليقها رأسياً في كابينة تهوية خاصة.",
+    recommendation: "تعليق المناظير رأسياً بدون صمامات في دولاب تجفيف وتهوية طبي معقم (HEPA-filtered Endoscope Cabinet) لمنع الرطوبة ونمو البكتيريا.",
+    responsible: "مشرف وحدة المناظير / تمريض الوحدة",
+    duration: "يومين",
+    monitoringMethod: "التفتيش على كبائن التخزين وسحب مزارع دورية من قنوات المناظير",
+    severity: "high",
+    standardRef: "CBAHI Endoscopy Reprocessing & Storage Standards"
+  },
+
+  // 7. العيادات الخارجية والفحوصات
+  {
+    id: "obs-cln-1",
+    category: "العيادات الخارجية والفحوصات",
+    location: "عيادات الفحص والتشخيص",
+    observation: "عدم تطهير مواضع استناد وتلامس المريض على أجهزة الفحص (مثل مصباح الشق في العيون، جهاز تخطيط السمع، السونار) بعد كل كشف.",
+    recommendation: "تطهير كافة مواضع ملامسة رأس وذقن وأيدي المريض بمسحات كحولية 70% وتوفير رول ورقي نظيف لكل مريض.",
+    responsible: "تمريض العيادات الخارجية / الطبيب المعالج",
+    duration: "يوم واحد",
+    monitoringMethod: "المرور والتفتيش بين مواعيد المرضى",
+    severity: "medium",
+    standardRef: "Outpatient Infection Prevention Best Practices"
+  },
+  {
+    id: "obs-cln-2",
+    category: "العيادات الخارجية والفحوصات",
+    location: "أسرّة الكشف بالعيادات",
+    observation: "عدم استبدال الرول الورقي الواقي على سرير الفحص بعد انتهاء فحص المريض أو تمزقه وتركه بدون تجديد.",
+    recommendation: "تغيير الغطاء الورقي لسرير الكشف وسحبه بالكامل لكل مريض وتطهير جلد السرير بمطهر الأسطح في حال تلوثه بالسوائل.",
+    responsible: "تمريض العيادة / مسؤول الخدمات المعاونة",
+    duration: "فوري",
+    monitoringMethod: "التفتيش الدوري أثناء ساعات عمل العيادات",
+    severity: "low",
+    standardRef: "Environmental Sanitation in Outpatient Settings"
+  },
+  {
+    id: "obs-cln-3",
+    category: "العيادات الخارجية والفحوصات",
+    location: "نقطة الفرز البصري (Triage)",
+    observation: "عدم تفعيل الفرز البصري الفوري للأعراض التنفسية ودرجات الحرارة بمدخل المنشأة قبل اختلاط المرضى بصالات الانتظار.",
+    recommendation: "إلزام تمريض الفرز بفحص كافة المراجعين وتقديم كمامات فورية ومطهر أيدي لأي مريض يعاني من سعال أو حمى وتوجيهه لغرفة العزل المؤقت.",
+    responsible: "مشرف التمريض / تمريض الفرز والاستقبال",
+    duration: "يوم واحد",
+    monitoringMethod: "مراجعة سجل الفرز البصري والتفتيش الميداني عند المدخل",
+    severity: "high",
+    standardRef: "Visual Triage Protocol for Respiratory Infections (MOH)"
+  },
+
+  // 8. المختبرات ومعامل التحاليل وبنك الدم
+  {
+    id: "obs-lab-1",
+    category: "المختبرات وبنك الدم",
+    location: "معمل الميكروبيولوجي واستلام العينات",
+    observation: "التعامل مع العينات البيولوجية الخطرة خارج كابينة الأمان الحيوي (Biosafety Cabinet Class II) أو عدم توثيق شهادة معايرتها السنوية.",
+    recommendation: "إلزام فنيي المعمل بمعالجة عينات البلغم والدم والزراعة داخل كابينة الأمان الحيوي وتجديد شهادة الفحص السنوي للفلاتر.",
+    responsible: "مدير المختبر / مسؤول السلامة الحيوية",
+    duration: "فوري",
+    monitoringMethod: "مراجعة شهادات صيانة الكبائن والمرور على المختبر",
+    severity: "critical",
+    standardRef: "Biosafety in Microbiological and Biomedical Laboratories (BMBL)"
+  },
+  {
+    id: "obs-lab-2",
+    category: "المختبرات وبنك الدم",
+    location: "نقل العينات بالمعمل",
+    observation: "نقل أنابيب الدم والعينات باليد مباشرة أو في حاويات مفتوحة دون استخدام صناديق النقل المحكمة المزدوجة ثلاثية الطبقات (Triple Packaging).",
+    recommendation: "استخدام حاملات الأنابيب المغلقة والصناديق الصلبة المانعة للتسرب والمميزة بعلامة الخطر الحيوي (Biohazard) لنقل كافة العينات.",
+    responsible: "مشرف سحب ونقل العينات / فنيو المعمل",
+    duration: "يومين",
+    monitoringMethod: "مراقبة مسارات نقل العينات من الأقسام للمختبر",
+    severity: "high",
+    standardRef: "WHO Guidance on Regulations for Transport of Infectious Substances"
+  },
+  {
+    id: "obs-lab-3",
+    category: "المختبرات وبنك الدم",
+    location: "بنك الدم وثلاجات حفظ العينات",
+    observation: "عدم توفر طقم معالجة انسكابات الدم وسوائل الجسم (Blood Spill Kit) أو نقص محتوياته (حبيبات الكلور، الملقاط، أكياس النفايات).",
+    recommendation: "توفير Spill Kit مكتمل الصلاحية والمحتويات بكل غرفة سحب ومعمل وتدريب الكوادر على خطوات التعامل مع انسكاب الدم.",
+    responsible: "مشرف السلامة بالمختبر / مسؤول مكافحة العدوى",
+    duration: "يوم واحد",
+    monitoringMethod: "التفتيش الشهري على أطقم الانسكاب وسجلات التدريب",
+    severity: "high",
+    standardRef: "Management of Blood and Body Fluid Spills Protocol"
+  },
+
+  // 9. الأقسام الداخلية وغرف التنويم (Inpatient Wards)
+  {
+    id: "obs-inp-1",
+    category: "الأقسام الداخلية وغرف التنويم",
+    location: "غرف إقامة المرضى",
+    observation: "عدم تطهير أجهزة قياس العلامات الحيوية (سماعة الطبيب، جهاز الضغط، مقياس الحرارة، جهاز النبض) بين مريض وآخر.",
+    recommendation: "تخصيص كفة ضغط وسماعة لكل مريض معزول، وتطهير الأجهزة المشتركة بمسحات كحولية أو مطهر أسطح معتمد بين كل مريض والآخر.",
+    responsible: "تمريض الأقسام الداخلية / مشرف التمريض",
+    duration: "فوري",
+    monitoringMethod: "الملاحظة المباشرة أثناء جولات قياس العلامات الحيوية",
+    severity: "medium",
+    standardRef: "Non-Critical Medical Equipment Decontamination Standard"
+  },
+  {
+    id: "obs-inp-2",
+    category: "الأقسام الداخلية وغرف التنويم",
+    location: "محطة التمريض وغرفة الأدوية النظيفة",
+    observation: "وضع أطعمة ومشروبات شخصية للعاملين بجوار أماكن تحضير العلاجات أو داخل ثلاجة حفظ الأدوية.",
+    recommendation: "الحظر القاطع لتخزين أي أطعمة أو مشروبات في غرف الأدوية أو ثلاجات العينات والأدوية وتخصيص استراحة خاصة للعاملين.",
+    responsible: "مشرف تمريض القسم / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "التفتيش اليومي على ثلاجات ومحطات التمريض",
+    severity: "high",
+    standardRef: "Safe Medication Storage and Preparation Standards"
+  },
+  {
+    id: "obs-inp-3",
+    category: "الأقسام الداخلية وغرف التنويم",
+    location: "دورات مياه المرضى وغرف الاستحمام",
+    observation: "تراكم الرواسب أو عدم توفر صابون ومناشف ورقية جدارية داخل دورات مياه غرف التنويم.",
+    recommendation: "جدولة تنظيف وتطهير دورات المياه 3 مرات يومياً وبالكلور، وتعبئة الصابون والمناديل الورقية بصفة مستمرة.",
+    responsible: "مشرف النظافة والخدمات المعاونة",
+    duration: "يوم واحد",
+    monitoringMethod: "قوائم تدقيق نظافة الحمامات الموقعة من المشرفين",
+    severity: "medium",
+    standardRef: "Hospital Environmental Cleaning & Hygiene Guidelines"
+  },
+
+  // 10. غرف العزل الصحي ومكافحة العدوى المنقولة
+  {
+    id: "obs-iso-1",
+    category: "غرف العزل الصحي",
+    location: "غرف العزل سالب الضغط (Airborne Isolation Room)",
+    observation: "عدم تفعيل أو عطل جهاز مراقبة فرق الضغط السالب (Pressure Differential Gauge) أو بقاء قراءة الضغط موجبة/صفرية.",
+    recommendation: "إصلاح نظام التهوية فوراً لضمان ضغط سالب لا يقل عن (-2.5 Pa) ومعدل تغيير هواء لا يقل عن 12 دورة/ساعة وفحص الفلتر HEPA.",
+    responsible: "مدير الصيانة الطبية / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "المعايرة الدورية اليومية واختبار الدخان الصباحي",
+    severity: "critical",
+    standardRef: "CDC Airborne Infection Isolation Rooms (AIIR) Standards"
+  },
+  {
+    id: "obs-iso-2",
+    category: "غرف العزل الصحي",
+    location: "مدخل غرفة العزل (Anteroom)",
+    observation: "غياب بطاقات ولوحات العزل الملونة المعيارية (Contact, Droplet, Airborne Precaution Signs) على باب المريض.",
+    recommendation: "وضع لافتة العزل المعتمدة بلغة واضحة تحدد نوع الاحتياطات ومعدات الوقاية المطلوبة قبل دخول الغرفة.",
+    responsible: "تمريض القسم / منسق مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "التفتيش الميداني عند تنويم أي حالة معزولة",
+    severity: "high",
+    standardRef: "Transmission-Based Precautions Signage System"
+  },
+
+  // 11. الصيدلية وتحضير الأدوية والمحاليل
+  {
+    id: "obs-phr-1",
+    category: "الصيدلية وتحضير الأدوية والمحاليل",
+    location: "غرفة تحضير المحاليل الوريدية (IV Admixture)",
+    observation: "تحضير المحاليل الوريدية والمضادات الحيوية في بيئة مفتوحة بدون استخدام كابينة التدفق الصفائحي (Laminar Flow Hood).",
+    recommendation: "إلزام الصيدلي والتمريض بتحضير المحاليل الوريدية داخل كابينة التدفق الصفائحي المعقمة (ISO Class 5) باتباع أسلوب التعقيم الكامل Aseptic Technique.",
+    responsible: "مدير الصيدلية / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "مراجعة إجراءات تحضير المحاليل المعقمة (USP 797)",
+    severity: "critical",
+    standardRef: "USP <797> Pharmaceutical Compounding - Sterile Preparations"
+  },
+  {
+    id: "obs-phr-2",
+    category: "الصيدلية وتحضير الأدوية والمحاليل",
+    location: "غرف تحضير الأدوية بالأقسام",
+    observation: "استخدام فيالات الأدوية متعددة الجرعات (Multi-dose vials) بدون تدوين تاريخ وساعة الفتح أو الاستمرار في استخدامها بعد 28 يوماً.",
+    recommendation: "التدوين الإلزامي لتاريخ وساعة الفتح وتاريخ انتهاء الصلاحية بعد الفتح (Beyond-Use Date 28 days) وتطهير السدادة المطاطية بالكحول 70% قبل كل سحب.",
+    responsible: "مشرف التمريض / الصيدلي الإكلينيكي",
+    duration: "فوري",
+    monitoringMethod: "التفتيش العشوائي على صواني وثلاجات الأدوية",
+    severity: "high",
+    standardRef: "CDC Safe Injection Practices & Multi-Dose Vial Policy"
+  },
+  {
+    id: "obs-phr-3",
+    category: "الصيدلية وتحضير الأدوية والمحاليل",
+    location: "ثلاجة الصيدلية والأمصال",
+    observation: "تذبذب درجات حرارة ثلاجة حفظ الأدوية واللقاحات خارج النطاق الآمن (2-8°C) دون وجود إنذار مسموع أو سجل معايرة.",
+    recommendation: "تركيب جهاز تسجيل درجات الحرارة الرقمي المستمر (Data Logger) مع إنذار صوتي ورسائل تنبيه وتوثيق القراءات مرتين يومياً.",
+    responsible: "مدير الصيدلية / قسم الصيانة الطبية",
+    duration: "يومين",
+    monitoringMethod: "مراجعة تقارير درجات حرارة الثلاجات شهرياً",
+    severity: "high",
+    standardRef: "Cold Chain Management Guidelines for Vaccines and Biologics"
+  },
+
+  // 12. أحواض ونظافة وتطهير الأيدي
+  {
+    id: "obs-hh-1",
+    category: "أحواض ونظافة وتطهير الأيدي",
+    location: "أحواض الأقسام والممرات",
+    observation: "نقص أو فراغ عبوات الصابون السائل أو المطهر الكحولي الجداري (Alcohol Hand Rub) دون إعادة تعبئة فورية.",
+    recommendation: "توفير رصيد احتياطي بكل قسم وتعيين مسؤول يومي للتأكد من امتلاء موزعات الصابون والمطهر الكحولي عند نقاط تقديم الرعاية (Point of Care).",
+    responsible: "مشرف التمريض / مسؤول الخدمات المساندة",
+    duration: "فوري",
+    monitoringMethod: "قوائم الفحص الصباحي اليومية",
+    severity: "high",
+    standardRef: "WHO Hand Hygiene Multi-Modal Strategy"
+  },
+  {
+    id: "obs-hh-2",
+    category: "أحواض ونظافة وتطهير الأيدي",
+    location: "محطات غسيل الأيدي",
+    observation: "عدم توفر المناديل الورقية الجدارية أو استخدام مناشف قماشية مشتركة لتجفيف الأيدي.",
+    recommendation: "حظر استخدام المناشف القماشية نهائياً وتوفير مناشف ورقية أحادية الاستخدام في موزعات جدارية مغلقة قرب كل حوض.",
+    responsible: "مسؤول الإمداد / مشرف الخدمات المعاونة",
+    duration: "يوم واحد",
+    monitoringMethod: "المرور والتفتيش الصباحي",
+    severity: "medium",
+    standardRef: "WHO Guidelines on Hand Hygiene in Health Care"
+  },
+  {
+    id: "obs-hh-3",
+    category: "أحواض ونظافة وتطهير الأيدي",
+    location: "جميع الأقسام الطبية",
+    observation: "انخفاض معدل الامتثال لنظافة الأيدي (Hand Hygiene Compliance Rate) بين الأطباء والتمريض لأقل من 80% في اللحظات الخمس لمنظمة الصحة العالمية.",
+    recommendation: "تكثيف جولات التدقيق الخفي (Secret Shopper Audits)، وعقد ورش عمل تنشيطية، ونشر لوحات إرشادية عند مدخل كل غرفة مريض.",
+    responsible: "منسق مكافحة العدوى / مدرب التمريض",
+    duration: "أسبوع",
+    monitoringMethod: "تقرير مؤشرات الأداء الشهرية لنظافة الأيدي (KPI: Hand Hygiene %)",
+    severity: "high",
+    standardRef: "WHO 5 Moments for Hand Hygiene Audit Protocol"
+  },
+
+  // 13. النفايات الطبية والأدوات الحادة (Medical Waste & Sharps)
+  {
+    id: "obs-wst-1",
+    category: "النفايات الطبية والأدوات الحادة",
+    location: "غرف العمليات والأقسام الداخلية",
+    observation: "امتلاء صندوق الأمان للأدوات الحادة (Safety Box) بنسبة تتجاوز 75% (علامة 3/4) أو وجود إبر بارزة من الفتحة.",
+    recommendation: "إغلاق صندوق الأمان فوراً بالشريط اللاصق عند وصوله لخط 3/4 واستبداله بآخر جديد وحظر الضغط اليدوي على محتوياته نهائياً.",
+    responsible: "تمريض الأقسام / مشرف مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "المرور والتفتيش الميداني المستمر",
+    severity: "critical",
+    standardRef: "Sharps Safety & Needle-stick Prevention Guidelines"
+  },
+  {
+    id: "obs-wst-2",
+    category: "النفايات الطبية والأدوات الحادة",
+    location: "غرفة تجميع النفايات المؤقتة",
+    observation: "خلط النفايات الطبية الخطرة (الأكياس الصفراء/الحمراء) بالنفايات البلدية العادية (الأكياس السوداء) مما يرفع كلفة المعالجة ومخاطر التلوث.",
+    recommendation: "إعادة تدريب الكادر الطبي وعمال النظافة على الفصل الدقيق للنفايات عند المنبع وتوفير أكياس بالألوان القياسية وسلات بدواسة قدم.",
+    responsible: "مشرف النظافة / مسؤول مكافحة العدوى",
+    duration: "يومين",
+    monitoringMethod: "التفتيش اليومي على غرفة النفايات وسجلات الوزن والتخلص",
+    severity: "high",
+    standardRef: "Health Care Waste Management National Regulations"
+  },
+  {
+    id: "obs-wst-3",
+    category: "النفايات الطبية والأدوات الحادة",
+    location: "مسارات نقل النفايات",
+    observation: "نقل أكياس النفايات الطبية عبر المصاعد المخصصة للمرضى والزوار أو استخدام حاويات نقل غير مغلقة ومسربة.",
+    recommendation: "تحديد مسارات وأوقات محددة لنقل النفايات في حاويات بلاستيكية صلبة مغلقة ومحكمة ومخصصة حصرياً للنفايات الطبية.",
+    responsible: "مشرف الخدمات المعاونة / مسؤول السلامة",
+    duration: "يوم واحد",
+    monitoringMethod: "متابعة جداول ومسارات نقل النفايات الداخلية",
+    severity: "medium",
+    standardRef: "Internal Waste Transport Standard Operating Procedure"
+  },
+
+  // 14. الخدمات البيئية والمغسلة المركزية
+  {
+    id: "obs-env-1",
+    category: "الخدمات البيئية والمغسلة المركزية",
+    location: "غرفة حفظ أدوات النظافة (Janitor Closet)",
+    observation: "استخدام ممسحة واحدة أو فوطة واحدة لتنظيف غرف متعددة أو عدم تطبيق نظام الترميز اللوني (Color Coding) للفوط والمماسح.",
+    recommendation: "تطبيق نظام الأكواد اللونية بدقة (الأحمر لدورات المياه، الأصفر لغرف العزل، الأزرق للمكاتب والأسطح العامة)، وتغيير الفوطة لكل مريض.",
+    responsible: "مشرف النظافة / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "التفتيش المباشر على عربات النظافة وغرف عمال النظافة",
+    severity: "high",
+    standardRef: "Environmental Cleaning Color-Coding System (CDC/MOH)"
+  },
+  {
+    id: "obs-env-2",
+    category: "الخدمات البيئية والمغسلة المركزية",
+    location: "المغسلة المركزية للمفروشات",
+    observation: "غسيل المفروشات الملوثة بالسوائل البيولوجية بدرجة حرارة ماء منخفضة أو عدم الفصل بين مسار المفروشات المتسخة والنظيفة.",
+    recommendation: "غسيل المفروشات الملوثة بماء ساخن لا يقل عن 71°C لمدة 25 دقيقة مع مادة مبيضة ومعقمة (الكلور 50-150 ppm) وضمان الفصل الفيزيائي بين خط الاستلام وخط الصرف.",
+    responsible: "مشرف المغسلة المركزية / مسؤول الجودة",
+    duration: "أسبوع",
+    monitoringMethod: "مراجعة سجلات حرارة الغسالات وفحص مزارع الأقمشة",
+    severity: "high",
+    standardRef: "Healthcare Laundry & Linen Decontamination Standards"
+  },
+  {
+    id: "obs-env-3",
+    category: "الخدمات البيئية والمغسلة المركزية",
+    location: "الأقسام والممرات",
+    observation: "تحضير محلول الكلور بتركيزات عشوائية أو تخزينه في عبوات شفافة مفتوحة تفقد فاعليتها بفعل الضوء والحرارة.",
+    recommendation: "تحضير محلول الكلور يومياً بنسب محددة (1000 ppm للتطهير العام، 5000 ppm لانسكابات الدم) في عبوات معتمة وتدوين تاريخ وساعة التحضير.",
+    responsible: "مشرف عمال النظافة",
+    duration: "يوم واحد",
+    monitoringMethod: "فحص تركيز الكلور بأشرطة الاختبار الكيميائي (Chlorine Test Strips)",
+    severity: "high",
+    standardRef: "Sodium Hypochlorite Dilution and Stability Guidelines"
+  },
+
+  // 15. المطبخ وسلامة الغذاء والتغذية
+  {
+    id: "obs-food-1",
+    category: "المطبخ وسلامة الغذاء والتغذية",
+    location: "المطبخ المركزي وتحضير الوجبات",
+    observation: "استخدام نفس ألواح التقطيع والسكاكين لتقطيع اللحوم النيئة والخضراوات الجاهزة للأكل مسبباً تلوثاً تبادلياً (Cross-Contamination).",
+    recommendation: "تطبيق ألواح التقطيع الملونة المعتمدة (الأحمر للحوم النيئة، الأخضر للخضراوات، الأبيض للأجبان) والتعقيم الحراري للسكاكين.",
+    responsible: "مشرف قسم التغذية / رئيس الطهاة",
+    duration: "فوري",
+    monitoringMethod: "التفتيش الدوري أثناء ساعات إعداد الوجبات",
+    severity: "critical",
+    standardRef: "HACCP Food Safety and Cross-Contamination Prevention"
+  },
+  {
+    id: "obs-food-2",
+    category: "المطبخ وسلامة الغذاء والتغذية",
+    location: "ثلاجات حفظ الأطعمة ومخزن الجاف",
+    observation: "تخزين الأغذية ملامسة للأرض مباشرة أو عدم تطبيق قاعدة (ما يدخل أولاً يخرج أولاً FIFO) أو تجاوز درجة حرارة التبريد 5°C.",
+    recommendation: "رص الأغذية على أرفف ستانلس ستيل مرتفعة 20 سم عن الأرض وتطبيق بطاقات التاريخ (Date-Labeling) والالتزام بدرجات حرارة الثلاجات والمجمدات (-18°C).",
+    responsible: "مسؤول استلام وتخزين الأغذية / أخصائي التغذية",
+    duration: "يوم واحد",
+    monitoringMethod: "مراجعة سجلات حرارة الثلاجات وتواريخ صلاحية المواد الغذائية",
+    severity: "high",
+    standardRef: "Hospital Catering & Food Safety Standards"
+  },
+
+  // 16. صحة العاملين والوخز المهني
+  {
+    id: "obs-occ-1",
+    category: "صحة العاملين والوخز المهني",
+    location: "عيادة صحة العاملين ومحطات التمريض",
+    observation: "تأخر الإبلاغ عن حالات وخز الإبر والإصابات بالأدوات الحادة أو عدم بدء الإجراء الوقائي بعد التعرض (PEP) خلال الساعتين الأوليين.",
+    recommendation: "تفعيل بروتوكول الإبلاغ السريع الفوري عن الوخز وإجراء تحاليل المصدر والمصاب وبدء PEP والتطعيمات فوراً وفق الدليل الوطني.",
+    responsible: "مسؤول صحة العاملين / طبيب الطوارئ ومكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "سجل حوادث الوخز المهني (Needle-stick Registry)",
+    severity: "critical",
+    standardRef: "Post-Exposure Prophylaxis (PEP) & Occupational Health Protocol"
+  },
+  {
+    id: "obs-occ-2",
+    category: "صحة العاملين والوخز المهني",
+    location: "سجلات الكادر الطبي والتمريضي",
+    observation: "عدم اكتمال تطعيمات التهاب الكبد الوبائي (B) وفحص مستوى الأجسام المضادة (Anti-HBs Titer) لجميع الكوادر المعرضة للدماء.",
+    recommendation: "استكمال جرعات اللقاح الثلاث وفحص مستوى المناعة (>10 mIU/mL) وإعطاء الجرعة التنشيطية لغير المستجيبين وتوثيقها بملف الموظف.",
+    responsible: "مسؤول صحة العاملين / إدارة الموارد البشرية",
+    duration: "أسبوعين",
+    monitoringMethod: "مراجعة قاعدة بيانات تطعيمات منسوبي المنشأة",
+    severity: "high",
+    standardRef: "Staff Immunization and Immunity Screening Standards"
+  },
+
+  // 17. محطة معالجة المياه وخزانات الشرب
+  {
+    id: "obs-wat-1",
+    category: "محطة معالجة المياه وخزانات الشرب",
+    location: "الخزانات المركزية ومحطة معالجة المياه",
+    observation: "تأخر فحص بكتيريا الليجيونيلا (Legionella testing) ومستوى الكلور الحر المتبقي في مياه شبكة المستشفى وخزانات الشرب.",
+    recommendation: "سحب عينات دورية نصف سنوية لفحص الليجيونيلا ومراقبة الكلور المتبقي يومياً (0.2-0.5 mg/L) وتنظيف الخزانات دورياً كل 6 أشهر.",
+    responsible: "مدير الصيانة والسلامة / مسؤول مكافحة العدوى",
+    duration: "أسبوع",
+    monitoringMethod: "سجلات الصيانة وتقارير المختبر المعتمد لمياه الشرب",
+    severity: "high",
+    standardRef: "Environmental Legionella Prevention & Water Safety Plan"
+  }
+];
