@@ -222,7 +222,7 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
             </h1>
           </div>
 
-          {/* Metadata Table (الفترة / اليوم / القائم بالمرور / التاريخ) */}
+          {/* Metadata Table (الفترة / اليوم / القائم بالمرور / التاريخ / القسم إن وجد) */}
           <div className="my-6">
             <table className="w-full text-right border-collapse border-2 border-black" dir="rtl">
               <tbody>
@@ -236,7 +236,7 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
                     <span className="font-bold text-slate-900">{round.day || "الأحد"}</span>
                   </td>
                 </tr>
-                <tr>
+                <tr className={round.department ? "border-b-2 border-black" : ""}>
                   <td className={`border-2 border-black px-4 py-3 w-1/2 ${fontSizeConfig.metaText}`}>
                     <span className="font-black text-black">القائم بالمرور : </span>
                     <span className="font-bold text-slate-900">{round.inspector || "م/ أحمد وحيد شعبان"}</span>
@@ -246,6 +246,16 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
                     <span className="font-bold text-slate-900" dir="ltr">{round.date || "2026/06/28"}</span>
                   </td>
                 </tr>
+                {round.department && (
+                  <tr>
+                    <td colSpan={2} className={`border-2 border-black px-4 py-2.5 bg-slate-50/50 ${fontSizeConfig.metaText}`}>
+                      <span className="font-black text-black">القسم المستهدف : </span>
+                      <span className="font-bold text-blue-900 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                        {round.department}
+                      </span>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -256,7 +266,7 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
               <thead>
                 <tr className="bg-slate-200 border-b-2 border-black text-center">
                   <th className={`border-2 border-black px-4 py-3 w-[20%] text-center ${fontSizeConfig.tableHeader}`}>
-                    الموقع
+                    الموقع / القسم
                   </th>
                   <th className={`border-2 border-black px-4 py-3 w-[35%] text-right ${fontSizeConfig.tableHeader}`}>
                     الملاحظات المرصودة
@@ -273,7 +283,7 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
                 {round.observations.map((obs, idx) => (
                   <tr key={obs.id || idx} className="border-b border-black">
                     <td className={`border border-black px-4 py-3 font-black text-center align-top ${fontSizeConfig.tableText}`}>
-                      {obs.location}
+                      {obs.location || "-"}
                     </td>
                     <td className={`border border-black px-4 py-3 text-right leading-relaxed align-top ${fontSizeConfig.tableText}`}>
                       <bdi className="arabic-mixed-text">{obs.observation}</bdi>

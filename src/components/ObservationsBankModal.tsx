@@ -19,13 +19,24 @@ import {
   Trash2,
   Sparkles,
   ArrowRight,
-  Filter
+  Filter,
+  BookMarked
 } from "lucide-react";
 import {
   STANDARD_OBSERVATIONS_LIBRARY,
   OBSERVATION_CATEGORIES
 } from "../data/standardObservations";
+import {
+  EGYPTIAN_INSPECTION_CONTROL_POLICIES,
+  getPolicyById
+} from "../data/infectionControlPolicies";
 import { StandardObservationItem, CenterSettings } from "../types";
+import {
+  getCustomObservations,
+  saveCustomObservationsList,
+  deleteCustomObservationById,
+  CUSTOM_OBSERVATIONS_EVENT,
+} from "../utils/customObservationsManager";
 
 interface ObservationsBankModalProps {
   isOpen: boolean;
@@ -42,6 +53,7 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
   onCreateRoundFromObservations,
   centerSettings,
 }) => {
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [selectedSeverity, setSelectedSeverity] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
@@ -50,24 +62,19 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [copySuccessToast, setCopySuccessToast] = useState<string | null>(null);
 
-  // Local Custom Observations
-  const [customObservations, setCustomObservations] = useState<StandardObservationItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("ic_custom_observations");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Local Custom Observations with reactive update listener
+  const [customObservations, setCustomObservations] = useState<StandardObservationItem[]>(() =>
+    getCustomObservations()
+  );
 
-  // Sync custom observations
+  // Sync custom observations across components
   useEffect(() => {
-    try {
-      localStorage.setItem("ic_custom_observations", JSON.stringify(customObservations));
-    } catch (e) {
-      console.error("Failed to save custom observations", e);
-    }
-  }, [customObservations]);
+    const handleUpdate = () => {
+      setCustomObservations(getCustomObservations());
+    };
+    window.addEventListener(CUSTOM_OBSERVATIONS_EVENT, handleUpdate);
+    return () => window.removeEventListener(CUSTOM_OBSERVATIONS_EVENT, handleUpdate);
+  }, []);
 
   // Merge default and custom observations
   const allObservations = useMemo(() => {
@@ -97,6 +104,7 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
   // Filtered observations
   const filtered = useMemo(() => {
     return allObservations.filter((item) => {
+      const matchPolicy = selectedPolicyId === "all" || item.policyId === selectedPolicyId;
       const matchCat = selectedCategory === "الكل" || item.category === selectedCategory;
       const matchSeverity =
         selectedSeverity === "all" || item.severity === selectedSeverity;
@@ -107,10 +115,12 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
         item.recommendation.toLowerCase().includes(q) ||
         item.location.toLowerCase().includes(q) ||
         item.responsible.toLowerCase().includes(q) ||
+        (item.policyName && item.policyName.toLowerCase().includes(q)) ||
+        (item.egyptianGuidelineRef && item.egyptianGuidelineRef.toLowerCase().includes(q)) ||
         (item.standardRef && item.standardRef.toLowerCase().includes(q));
-      return matchCat && matchSeverity && matchSearch;
+      return matchPolicy && matchCat && matchSeverity && matchSearch;
     });
-  }, [allObservations, selectedCategory, selectedSeverity, search]);
+  }, [allObservations, selectedPolicyId, selectedCategory, selectedSeverity, search]);
 
   // Selection toggle
   const toggleSelect = (id: string) => {
@@ -212,9 +222,10 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
       severity: newSeverity,
       standardRef: newRef.trim(),
       isCustom: true,
+      createdAt: new Date().toISOString(),
     };
 
-    setCustomObservations((prev) => [customItem, ...prev]);
+    saveCustomObservationsList([customItem, ...customObservations]);
     setShowAddModal(false);
     // Reset form
     setNewLocation("");
@@ -223,7 +234,7 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
   };
 
   const handleDeleteCustom = (id: string) => {
-    setCustomObservations((prev) => prev.filter((i) => i.id !== id));
+    deleteCustomObservationById(id);
   };
 
   if (!isOpen) return null;
@@ -293,7 +304,7 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث بالنص، الملاحظة، الإجراء التصحيحي، القسم، المسؤول، أو المرجع القياسي (CBAHI/WHO)..."
+                placeholder="ابحث بالنص، الملاحظة، الإجراء التصحيحي، السياسة، الدليل القومي، أو القسم..."
                 className="w-full pr-9 pl-8 py-2 text-xs sm:text-sm bg-white rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
               />
               {search && (
@@ -305,6 +316,22 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
                   <X className="w-4 h-4" />
                 </button>
               )}
+            </div>
+
+            {/* Policy Selector */}
+            <div className="w-full md:w-64">
+              <select
+                value={selectedPolicyId}
+                onChange={(e) => setSelectedPolicyId(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 font-semibold"
+              >
+                <option value="all">جميع سياسات مكافحة العدوى ({EGYPTIAN_INSPECTION_CONTROL_POLICIES.length})</option>
+                {EGYPTIAN_INSPECTION_CONTROL_POLICIES.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.code}: {p.shortTitle}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Severity Pill Selector */}
@@ -530,6 +557,13 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
                         <Building2 className="w-3 h-3 text-slate-500" />
                         {item.location}
                       </span>
+
+                      {item.policyName && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                          <BookMarked className="w-3 h-3 text-emerald-600" />
+                          {item.policyName}
+                        </span>
+                      )}
 
                       <span className="text-xs text-slate-500 font-medium">
                         ({item.category})

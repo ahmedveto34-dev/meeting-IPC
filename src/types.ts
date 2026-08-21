@@ -28,9 +28,23 @@ export interface MeetingTopic {
   updatedAt?: string;
 }
 
+export interface InfectionControlPolicy {
+  id: string;
+  code: string;
+  title: string;
+  shortTitle: string;
+  guidelineChapter: string;
+  scope: string;
+  summary: string;
+  keyRequirements: string[];
+  departmentCategory?: string;
+}
+
 export interface StandardObservationItem {
   id: string;
   category: string;
+  policyId?: string;
+  policyName?: string;
   location: string;
   observation: string;
   recommendation: string;
@@ -39,8 +53,11 @@ export interface StandardObservationItem {
   monitoringMethod: string;
   severity?: 'critical' | 'high' | 'medium' | 'low';
   standardRef?: string;
+  egyptianGuidelineRef?: string;
   isCustom?: boolean;
   tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Member {
@@ -97,9 +114,19 @@ export interface Meeting {
   updatedAt: string;
 }
 
+export const STANDARD_ROUND_DEPARTMENTS = [
+  "عيادة",
+  "فحوصات",
+  "قسم داخلي",
+  "عمليات",
+  "إفاقة",
+] as const;
+
+export type StandardRoundDepartment = typeof STANDARD_ROUND_DEPARTMENTS[number];
+
 export interface RoundObservation {
   id: string;
-  location: string; // الموقع
+  location?: string; // الموقع / القسم (اختياري: عيادة / فحوصات / عمليات / افاقة / قسم داخلي)
   observation: string; // الملاحظات
   recommendation: string; // التوصيات / الإجراء التصحيحي
   responsible: string; // المسؤول عن التنفيذ
@@ -110,6 +137,7 @@ export interface RoundObservation {
 export interface RoundReport {
   id: string;
   title: string; // تقرير المرور الاسبوعي
+  department?: string; // قسم المرور (اختياري: عيادة / فحوصات / عمليات / افاقة / قسم داخلي / عام)
   day: string;
   date: string;
   period: string; // الفترة : صباحي / مسائي

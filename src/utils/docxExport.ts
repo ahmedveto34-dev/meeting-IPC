@@ -38,8 +38,8 @@ const lightGrayShading = {
  * Generates and downloads a pristine Word (.docx) document for the Monthly Infection Control Committee Meeting
  */
 export async function exportMeetingToDocx(meeting: Meeting) {
-  const arabicFont = "Arial";
-  const headerFont = "Arial";
+  const arabicFont = "Cairo";
+  const headerFont = "Cairo";
 
   // Standard crisp cell borders
   const crispBorder = {
@@ -106,12 +106,14 @@ export async function exportMeetingToDocx(meeting: Meeting) {
     );
   }
   if (headerLeftParagraphs.length === 0) {
-    headerLeftParagraphs.push(new Paragraph({ children: [] }));
+    headerLeftParagraphs.push(new Paragraph({ bidirectional: true, children: [] }));
   }
 
   const topHeaderTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: [
       new TableRow({
         children: [
@@ -197,6 +199,7 @@ export async function exportMeetingToDocx(meeting: Meeting) {
     width: { size: 45, type: WidthType.PERCENTAGE },
     alignment: AlignmentType.CENTER,
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
     rows: [
       new TableRow({
         children: [
@@ -236,6 +239,8 @@ export async function exportMeetingToDocx(meeting: Meeting) {
   const openingCalloutTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: [
       new TableRow({
         children: [
@@ -457,6 +462,8 @@ export async function exportMeetingToDocx(meeting: Meeting) {
   const attendeesTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: attendeeRows,
   });
 
@@ -504,6 +511,8 @@ export async function exportMeetingToDocx(meeting: Meeting) {
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           layout: TableLayoutType.FIXED,
+          visuallyRightToLeft: true,
+          alignment: AlignmentType.CENTER,
           rows: [
             new TableRow({
               children: [
@@ -760,10 +769,10 @@ export async function exportMeetingToDocx(meeting: Meeting) {
                     ...(d.isCarriedOver
                       ? [
                           new TextRun({
-                            text: `[مرحل من السابق للمناقشة${d.sourceMeetingNumber ? ` (محضر ${d.sourceMeetingNumber})` : ""}] `,
+                            text: `[📌 مرحل من السابق للمناقشة${d.sourceMeetingNumber ? ` (محضر ${d.sourceMeetingNumber})` : ""}] `,
                             bold: true,
                             font: arabicFont,
-                            size: 19,
+                            size: 20,
                             color: "92400E",
                             rightToLeft: true,
                           }),
@@ -875,6 +884,8 @@ export async function exportMeetingToDocx(meeting: Meeting) {
   const decisionsTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: decisionRows,
   });
 
@@ -890,11 +901,13 @@ export async function exportMeetingToDocx(meeting: Meeting) {
   const signaturesTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: [
       new TableRow({
         cantSplit: true,
         children: [
-          // Column 1: مسئول مكافحة العدوى
+          // Column 1 (Rightmost in RTL): مسئول مكافحة العدوى
           new TableCell({
             width: { size: 33.33, type: WidthType.PERCENTAGE },
             borders: transparentBorders,
@@ -944,7 +957,7 @@ export async function exportMeetingToDocx(meeting: Meeting) {
               }),
             ],
           }),
-          // Column 2: مشرف التمريض
+          // Column 2 (Middle in RTL): مشرف التمريض
           new TableCell({
             width: { size: 33.33, type: WidthType.PERCENTAGE },
             borders: transparentBorders,
@@ -994,7 +1007,7 @@ export async function exportMeetingToDocx(meeting: Meeting) {
               }),
             ],
           }),
-          // Column 3: المدير الطبي
+          // Column 3 (Left in RTL): المدير الطبي
           new TableCell({
             width: { size: 33.33, type: WidthType.PERCENTAGE },
             borders: transparentBorders,
@@ -1049,8 +1062,22 @@ export async function exportMeetingToDocx(meeting: Meeting) {
     ],
   });
 
-  // Assemble full Document
+  // Assemble full Document with Cairo font and Right-to-Left defaults
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Cairo",
+            size: 24,
+            rightToLeft: true,
+          },
+          paragraph: {
+            alignment: AlignmentType.RIGHT,
+          },
+        },
+      },
+    },
     sections: [
       {
         properties: {
@@ -1071,12 +1098,12 @@ export async function exportMeetingToDocx(meeting: Meeting) {
           meetingTitleParagraph,
           meetingBadgeTable,
 
-          new Paragraph({ spacing: { after: 120 } }),
+          new Paragraph({ bidirectional: true, spacing: { after: 120 } }),
 
           // 3. Opening Statement Box
           openingCalloutTable,
 
-          new Paragraph({ spacing: { after: 140 } }),
+          new Paragraph({ bidirectional: true, spacing: { after: 140 } }),
 
           // 4. Attendees Table
           attendeesTable,
@@ -1086,7 +1113,7 @@ export async function exportMeetingToDocx(meeting: Meeting) {
 
           // 6. Previous Meeting Follow-up (if present)
           ...(previousMeetingBlock.length > 0
-            ? [new Paragraph({ spacing: { before: 160 } }), ...previousMeetingBlock]
+            ? [new Paragraph({ bidirectional: true, spacing: { before: 160 } }), ...previousMeetingBlock]
             : []),
 
           // 7. KPIs List (if present)
@@ -1144,102 +1171,175 @@ export async function exportMeetingToDocx(meeting: Meeting) {
 
 /**
  * Generates and downloads a pristine Word (.docx) document for the Weekly Infection Control Rounds Report
+ * matching the exact on-screen design, double border, Cairo font, table layout, and visual styling.
  */
 export async function exportRoundToDocx(round: RoundReport) {
-  const arabicFont = "Traditional Arabic";
-  const headerFont = "Arial";
+  const cairoFont = "Cairo";
+  const headerFont = "Cairo";
 
-  // Metadata Table (اليوم / التاريخ / الفترة / القائم بالمرور)
+  // Crisp black cell borders
+  const crispBorder = {
+    style: BorderStyle.SINGLE,
+    size: 6,
+    color: "000000",
+  };
+
+  const roundCellBorders = {
+    top: crispBorder,
+    bottom: crispBorder,
+    left: crispBorder,
+    right: crispBorder,
+  };
+
+  const cellMargins = {
+    top: 100,
+    bottom: 100,
+    left: 140,
+    right: 140,
+  };
+
+  const tableHeaderShading = {
+    fill: "E2E8F0", // Slate-200 matching in-app table header
+  };
+
+  const badgeShading = {
+    fill: "F1F5F9", // Slate-100
+  };
+
+  // 1. Metadata Table (الفترة / اليوم / القائم بالمرور / التاريخ / القسم المستهدف إن وجد)
+  const metaRows: TableRow[] = [
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: roundCellBorders,
+          margins: cellMargins,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+              children: [
+                new TextRun({ text: "الفترة : ", bold: true, font: headerFont, size: 26, color: "000000", rightToLeft: true }),
+                new TextRun({ text: round.period || "صباحي", font: cairoFont, size: 26, bold: true, color: "0F172A", rightToLeft: true }),
+              ],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: roundCellBorders,
+          margins: cellMargins,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+              children: [
+                new TextRun({ text: "اليوم : ", bold: true, font: headerFont, size: 26, color: "000000", rightToLeft: true }),
+                new TextRun({ text: round.day || "الأحد", font: cairoFont, size: 26, bold: true, color: "0F172A", rightToLeft: true }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: roundCellBorders,
+          margins: cellMargins,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+              children: [
+                new TextRun({ text: "القائم بالمرور : ", bold: true, font: headerFont, size: 26, color: "000000", rightToLeft: true }),
+                new TextRun({ text: round.inspector || "م/ أحمد وحيد شعبان", font: cairoFont, size: 26, bold: true, color: "0F172A", rightToLeft: true }),
+              ],
+            }),
+          ],
+        }),
+        new TableCell({
+          width: { size: 50, type: WidthType.PERCENTAGE },
+          borders: roundCellBorders,
+          margins: cellMargins,
+          verticalAlign: VerticalAlign.CENTER,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              bidirectional: true,
+              children: [
+                new TextRun({ text: "التاريخ : ", bold: true, font: headerFont, size: 26, color: "000000", rightToLeft: true }),
+                new TextRun({ text: round.date || "2026/06/28", font: cairoFont, size: 26, bold: true, color: "0F172A", rightToLeft: true }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  ];
+
+  if (round.department) {
+    metaRows.push(
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: roundCellBorders,
+            margins: cellMargins,
+            columnSpan: 2,
+            shading: badgeShading,
+            verticalAlign: VerticalAlign.CENTER,
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                bidirectional: true,
+                children: [
+                  new TextRun({ text: "القسم المستهدف : ", bold: true, font: headerFont, size: 26, color: "000000", rightToLeft: true }),
+                  new TextRun({ text: round.department, font: cairoFont, size: 26, bold: true, color: "1E3A8A", rightToLeft: true }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  }
+
   const metaTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 50, type: WidthType.PERCENTAGE },
-            borders: cellBorders,
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({ text: "الفترة : ", bold: true, font: headerFont, size: 26 }),
-                  new TextRun({ text: round.period || "صباحي", font: arabicFont, size: 26, bold: true }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 50, type: WidthType.PERCENTAGE },
-            borders: cellBorders,
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({ text: "اليوم : ", bold: true, font: headerFont, size: 26 }),
-                  new TextRun({ text: round.day || "الأحد", font: arabicFont, size: 26, bold: true }),
-                ],
-              }),
-            ],
-          }),
-        ],
-      }),
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 50, type: WidthType.PERCENTAGE },
-            borders: cellBorders,
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({ text: "القائم بالمرور : ", bold: true, font: headerFont, size: 26 }),
-                  new TextRun({ text: round.inspector || "م/ أحمد وحيد شعبان", font: arabicFont, size: 26, bold: true }),
-                ],
-              }),
-            ],
-          }),
-          new TableCell({
-            width: { size: 50, type: WidthType.PERCENTAGE },
-            borders: cellBorders,
-            verticalAlign: VerticalAlign.CENTER,
-            children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({ text: "التاريخ : ", bold: true, font: headerFont, size: 26 }),
-                  new TextRun({ text: round.date || "2026/06/28", font: arabicFont, size: 26, bold: true }),
-                ],
-              }),
-            ],
-          }),
-        ],
-      }),
-    ],
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
+    rows: metaRows,
   });
 
-  // Observations Table Rows
-  const obsRows = [
+  // 2. Observations Table Rows
+  const obsRows: TableRow[] = [
     new TableRow({
       tableHeader: true,
       children: [
         new TableCell({
           width: { size: 20, type: WidthType.PERCENTAGE },
-          borders: cellBorders,
-          shading: lightGrayShading,
+          borders: roundCellBorders,
+          shading: tableHeaderShading,
+          margins: cellMargins,
           verticalAlign: VerticalAlign.CENTER,
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              bidirectional: true,
               children: [
                 new TextRun({
-                  text: "الموقع",
+                  text: "الموقع / القسم",
                   bold: true,
                   font: headerFont,
                   size: 26,
+                  color: "000000",
+                  rightToLeft: true,
                 }),
               ],
             }),
@@ -1247,18 +1347,22 @@ export async function exportRoundToDocx(round: RoundReport) {
         }),
         new TableCell({
           width: { size: 35, type: WidthType.PERCENTAGE },
-          borders: cellBorders,
-          shading: lightGrayShading,
+          borders: roundCellBorders,
+          shading: tableHeaderShading,
+          margins: cellMargins,
           verticalAlign: VerticalAlign.CENTER,
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              bidirectional: true,
               children: [
                 new TextRun({
                   text: "الملاحظات المرصودة",
                   bold: true,
                   font: headerFont,
                   size: 26,
+                  color: "000000",
+                  rightToLeft: true,
                 }),
               ],
             }),
@@ -1266,18 +1370,22 @@ export async function exportRoundToDocx(round: RoundReport) {
         }),
         new TableCell({
           width: { size: 30, type: WidthType.PERCENTAGE },
-          borders: cellBorders,
-          shading: lightGrayShading,
+          borders: roundCellBorders,
+          shading: tableHeaderShading,
+          margins: cellMargins,
           verticalAlign: VerticalAlign.CENTER,
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              bidirectional: true,
               children: [
                 new TextRun({
                   text: "التوصيات والإجراء التصحيحي",
                   bold: true,
                   font: headerFont,
                   size: 26,
+                  color: "000000",
+                  rightToLeft: true,
                 }),
               ],
             }),
@@ -1285,18 +1393,22 @@ export async function exportRoundToDocx(round: RoundReport) {
         }),
         new TableCell({
           width: { size: 15, type: WidthType.PERCENTAGE },
-          borders: cellBorders,
-          shading: lightGrayShading,
+          borders: roundCellBorders,
+          shading: tableHeaderShading,
+          margins: cellMargins,
           verticalAlign: VerticalAlign.CENTER,
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
+              bidirectional: true,
               children: [
                 new TextRun({
                   text: "المسؤول عن التنفيذ",
                   bold: true,
                   font: headerFont,
                   size: 24,
+                  color: "000000",
+                  rightToLeft: true,
                 }),
               ],
             }),
@@ -1309,66 +1421,84 @@ export async function exportRoundToDocx(round: RoundReport) {
         new TableRow({
           children: [
             new TableCell({
-              borders: cellBorders,
+              borders: roundCellBorders,
+              margins: cellMargins,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
+                  bidirectional: true,
                   children: [
                     new TextRun({
-                      text: obs.location,
+                      text: obs.location || "-",
                       bold: true,
-                      font: arabicFont,
-                      size: 26,
+                      font: cairoFont,
+                      size: 24,
+                      color: "000000",
+                      rightToLeft: true,
                     }),
                   ],
                 }),
               ],
             }),
             new TableCell({
-              borders: cellBorders,
+              borders: roundCellBorders,
+              margins: cellMargins,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   alignment: AlignmentType.RIGHT,
+                  bidirectional: true,
+                  spacing: { line: 260 },
                   children: [
                     new TextRun({
                       text: obs.observation,
-                      font: arabicFont,
+                      font: cairoFont,
                       size: 24,
+                      color: "0F172A",
+                      rightToLeft: true,
                     }),
                   ],
                 }),
               ],
             }),
             new TableCell({
-              borders: cellBorders,
+              borders: roundCellBorders,
+              margins: cellMargins,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   alignment: AlignmentType.RIGHT,
+                  bidirectional: true,
+                  spacing: { line: 260 },
                   children: [
                     new TextRun({
                       text: obs.recommendation,
-                      font: arabicFont,
+                      font: cairoFont,
                       size: 24,
+                      color: "0F172A",
+                      rightToLeft: true,
                     }),
                   ],
                 }),
               ],
             }),
             new TableCell({
-              borders: cellBorders,
+              borders: roundCellBorders,
+              margins: cellMargins,
               verticalAlign: VerticalAlign.CENTER,
               children: [
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
+                  bidirectional: true,
                   children: [
                     new TextRun({
-                      text: obs.responsible,
-                      font: arabicFont,
+                      text: obs.responsible || "مشرف مكافحة العدوى",
+                      font: cairoFont,
                       size: 24,
                       bold: true,
+                      color: "1E293B",
+                      rightToLeft: true,
                     }),
                   ],
                 }),
@@ -1379,27 +1509,31 @@ export async function exportRoundToDocx(round: RoundReport) {
     ),
   ];
 
-  // If fewer than 8 observations, pad empty rows to fill page like the official paper template
-  const totalRowsNeeded = Math.max(obsRows.length, 7);
+  // If fewer than 4 observations, pad empty rows to fill page like the official paper template
+  const totalRowsNeeded = Math.max(obsRows.length, 5);
   while (obsRows.length < totalRowsNeeded) {
     obsRows.push(
       new TableRow({
         children: [
           new TableCell({
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: " ", size: 36 })] })],
+            borders: roundCellBorders,
+            margins: cellMargins,
+            children: [new Paragraph({ bidirectional: true, children: [new TextRun({ text: " ", size: 30 })] })],
           }),
           new TableCell({
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: " ", size: 36 })] })],
+            borders: roundCellBorders,
+            margins: cellMargins,
+            children: [new Paragraph({ bidirectional: true, children: [new TextRun({ text: " ", size: 30 })] })],
           }),
           new TableCell({
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: " ", size: 36 })] })],
+            borders: roundCellBorders,
+            margins: cellMargins,
+            children: [new Paragraph({ bidirectional: true, children: [new TextRun({ text: " ", size: 30 })] })],
           }),
           new TableCell({
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: " ", size: 36 })] })],
+            borders: roundCellBorders,
+            margins: cellMargins,
+            children: [new Paragraph({ bidirectional: true, children: [new TextRun({ text: " ", size: 30 })] })],
           }),
         ],
       })
@@ -1409,10 +1543,27 @@ export async function exportRoundToDocx(round: RoundReport) {
   const observationsTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     layout: TableLayoutType.FIXED,
+    visuallyRightToLeft: true,
+    alignment: AlignmentType.CENTER,
     rows: obsRows,
   });
 
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Cairo",
+            size: 24,
+            rightToLeft: true,
+            color: "000000",
+          },
+          paragraph: {
+            alignment: AlignmentType.RIGHT,
+          },
+        },
+      },
+    },
     sections: [
       {
         properties: {
@@ -1437,6 +1588,7 @@ export async function exportRoundToDocx(round: RoundReport) {
             ? [
                 new Paragraph({
                   alignment: AlignmentType.RIGHT,
+                  bidirectional: true,
                   spacing: { after: 100 },
                   children: [
                     new TextRun({
@@ -1444,22 +1596,27 @@ export async function exportRoundToDocx(round: RoundReport) {
                       bold: true,
                       font: headerFont,
                       size: 24,
+                      rightToLeft: true,
                     }),
                   ],
                 }),
               ]
             : []),
 
-          // Title: تقرير المرور الاسبوعي
+          // Title: تقرير المرور الاسبوعي (with underline matching UI)
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 100, after: 200 },
+            bidirectional: true,
+            spacing: { before: 140, after: 240 },
             children: [
               new TextRun({
                 text: round.title || "تقرير المرور الاسبوعي",
                 bold: true,
+                underline: {},
                 font: headerFont,
                 size: 32,
+                color: "000000",
+                rightToLeft: true,
               }),
             ],
           }),
@@ -1467,33 +1624,49 @@ export async function exportRoundToDocx(round: RoundReport) {
           // Metadata Table
           metaTable,
 
-          new Paragraph({ spacing: { after: 120 } }),
+          new Paragraph({ bidirectional: true, spacing: { after: 140 } }),
 
           // Observations Table
           observationsTable,
 
-          // Footer: مشرف مكافحة العدوى
+          // Footer: مشرف مكافحة العدوى والتوقيع
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { before: 400 },
+            bidirectional: true,
+            spacing: { before: 360, after: 80 },
             children: [
               new TextRun({
                 text: round.supervisorRole || "مشرف مكافحة العدوى",
                 bold: true,
                 font: headerFont,
                 size: 26,
+                color: "000000",
+                rightToLeft: true,
               }),
             ],
           }),
 
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { before: 120 },
+            bidirectional: true,
+            spacing: { before: 80 },
             children: [
               new TextRun({
-                text: round.inspector ? `التوقيع: ${round.inspector}` : "........................",
-                font: arabicFont,
-                size: 22,
+                text: "التوقيع : ",
+                font: headerFont,
+                bold: true,
+                size: 24,
+                color: "000000",
+                rightToLeft: true,
+              }),
+              new TextRun({
+                text: round.inspector || "م/ أحمد وحيد شعبان",
+                font: cairoFont,
+                bold: true,
+                underline: {},
+                size: 26,
+                color: "000000",
+                rightToLeft: true,
               }),
             ],
           }),

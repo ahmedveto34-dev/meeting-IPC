@@ -11,6 +11,7 @@ import { MonthlyPlanView } from "./components/MonthlyPlanView";
 import { TopicsLibraryView } from "./components/TopicsLibraryView";
 import { TopicEditModal } from "./components/TopicEditModal";
 import { ObservationsBankModal } from "./components/ObservationsBankModal";
+import { ObservationsBankView } from "./components/ObservationsBankView";
 import { SettingsModal } from "./components/SettingsModal";
 import { AiAssistantModal } from "./components/AiAssistantModal";
 import { CenterTemplatesManagerModal } from "./components/CenterTemplatesManagerModal";
@@ -380,36 +381,225 @@ export default function App() {
 
   // Create new Round from Selected Bank Observations
   const handleCreateRoundFromObservations = (obsList: StandardObservationItem[]) => {
-    const today = new Date();
-    const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-    const currentDay = dayNames[today.getDay()];
-    const currentDate = today.toISOString().split("T")[0].replace(/-/g, "/");
-
-    const newRound: RoundReport = {
-      id: `round-from-bank-${Date.now()}`,
-      title: "تقرير المرور الميداني لمكافحة العدوى",
-      day: currentDay,
-      date: currentDate,
-      period: "صباحي",
-      inspector: centerSettings.infectionControlLead || "مشرف مكافحة العدوى",
-      supervisorRole: "مشرف مكافحة العدوى",
-      centerName: centerSettings.centerName,
-      observations: obsList.map((item, idx) => ({
-        id: `obs-bank-${Date.now()}-${idx}`,
-        location: item.location,
-        observation: item.observation,
-        recommendation: item.recommendation,
-        responsible: item.responsible,
-        status: "pending",
-        dueDate: item.duration,
-      })),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setEditingRound(newRound);
-    setCurrentTab("round-edit");
+    handleAddObservationToRound(obsList, "new");
     setIsObsBankOpen(false);
+  };
+
+  // Add Observation(s) to Round (New or Existing)
+  const handleAddObservationToRound = (obsList: StandardObservationItem[], targetRoundId?: string) => {
+    if (!targetRoundId || targetRoundId === "new") {
+      const today = new Date();
+      const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+      const currentDay = dayNames[today.getDay()];
+      const currentDate = today.toISOString().split("T")[0].replace(/-/g, "/");
+
+      const newRound: RoundReport = {
+        id: `round-${Date.now()}`,
+        title: "تقرير المرور الميداني لمكافحة العدوى",
+        day: currentDay,
+        date: currentDate,
+        period: "صباحي",
+        inspector: centerSettings.infectionControlLead || "مشرف مكافحة العدوى",
+        supervisorRole: "مشرف مكافحة العدوى",
+        centerName: centerSettings.centerName,
+        observations: obsList.map((item, idx) => ({
+          id: `obs-${Date.now()}-${idx}`,
+          location: item.location,
+          observation: item.observation,
+          recommendation: item.recommendation,
+          responsible: item.responsible,
+          status: "pending",
+          dueDate: item.duration,
+        })),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setEditingRound(newRound);
+      setCurrentTab("round-edit");
+    } else {
+      const existing = rounds.find((r) => r.id === targetRoundId);
+      if (existing) {
+        const newObs = obsList.map((item, idx) => ({
+          id: `obs-appended-${Date.now()}-${idx}`,
+          location: item.location,
+          observation: item.observation,
+          recommendation: item.recommendation,
+          responsible: item.responsible,
+          status: "pending" as const,
+          dueDate: item.duration,
+        }));
+        const updatedRound: RoundReport = {
+          ...existing,
+          observations: [...existing.observations, ...newObs],
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedList = rounds.map((r) => (r.id === targetRoundId ? updatedRound : r));
+        setRounds(updatedList);
+        setSelectedRound(updatedRound);
+        setCurrentTab("round-view");
+      }
+    }
+  };
+
+  // Add Observation(s) to Meeting (New or Existing)
+  const handleAddObservationToMeeting = (obsList: StandardObservationItem[], targetMeetingId?: string) => {
+    if (!targetMeetingId || targetMeetingId === "new") {
+      const nextNum = String(meetings.length + 1);
+      const newMeeting: Meeting = {
+        id: `meeting-${Date.now()}`,
+        meetingNumber: nextNum,
+        day: "الأحد",
+        date: new Date().toISOString().split("T")[0].replace(/-/g, "/"),
+        time: "11:00 صباحاً",
+        location: "قاعة اجتماعات الإدارة الطبية",
+        centerName: centerSettings.centerName,
+        departmentTitle: centerSettings.departmentTitle,
+        members: centerSettings.defaultMembers,
+        agenda: [
+          "ما لم يتم إنجازه من الاجتماع السابق",
+          "مناقشة ملاحظات مكافحة العدوى والقرارات التصحيحية المطلوبة",
+          ...obsList.map((o) => `ملاحظة قسم ${o.location}: ${o.observation}`),
+        ],
+        previousMeetingDate: meetings[0]?.date,
+        previousMeetingFollowUp: "متابعة نتائج المرور الميداني بالأقسام",
+        kpis: [
+          { id: `kpi-1-${Date.now()}`, name: "معدل الالتزام بمعايير مكافحة العدوى", value: "%80", target: "%90" },
+        ],
+        decisions: obsList.map((item, idx) => ({
+          id: `dec-${Date.now()}-${idx}`,
+          topic: `${item.location}: ${item.observation}`,
+          decision: item.recommendation,
+          responsible: item.responsible,
+          duration: item.duration,
+          monitoringMethod: item.monitoringMethod,
+          status: "in_progress",
+        })),
+        approvals: {
+          preparedBy: centerSettings.nursingSupervisor,
+          infectionControlLead: centerSettings.infectionControlLead,
+          medicalDirector: centerSettings.medicalDirector,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setEditingMeeting(newMeeting);
+      setCurrentTab("meeting-edit");
+    } else {
+      const existing = meetings.find((m) => m.id === targetMeetingId);
+      if (existing) {
+        const newAgendas = obsList.map((o) => `ملاحظة قسم ${o.location}: ${o.observation}`);
+        const newDecisions: MeetingDecision[] = obsList.map((item, idx) => ({
+          id: `dec-appended-${Date.now()}-${idx}`,
+          topic: `${item.location}: ${item.observation}`,
+          decision: item.recommendation,
+          responsible: item.responsible,
+          duration: item.duration,
+          monitoringMethod: item.monitoringMethod,
+          status: "in_progress",
+        }));
+        const updatedMeeting: Meeting = {
+          ...existing,
+          agenda: [...existing.agenda, ...newAgendas],
+          decisions: [...existing.decisions, ...newDecisions],
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedList = meetings.map((m) => (m.id === targetMeetingId ? updatedMeeting : m));
+        setMeetings(updatedList);
+        setSelectedMeeting(updatedMeeting);
+        setCurrentTab("meeting-view");
+      }
+    }
+  };
+
+  // Add Topic(s) to Meeting (New or Existing)
+  const handleAddTopicToMeeting = (topicList: MeetingTopic[], targetMeetingId?: string) => {
+    if (!targetMeetingId || targetMeetingId === "new") {
+      handleCreateMeetingFromMultipleTopics(topicList);
+    } else {
+      const existing = meetings.find((m) => m.id === targetMeetingId);
+      if (existing) {
+        const combinedAgenda = [...existing.agenda];
+        const combinedKpis = [...existing.kpis];
+        const combinedDecisions = [...existing.decisions];
+
+        topicList.forEach((t, tIdx) => {
+          t.agenda?.forEach((item) => {
+            if (!combinedAgenda.includes(item)) combinedAgenda.push(item);
+          });
+          t.kpis?.forEach((k, kIdx) => {
+            if (!combinedKpis.some((x) => x.name.trim() === k.name.trim())) {
+              combinedKpis.push({
+                id: `kpi-top-${Date.now()}-${tIdx}-${kIdx}`,
+                name: k.name,
+                value: k.value,
+                target: k.target,
+              });
+            }
+          });
+          t.sampleDecisions?.forEach((d, dIdx) => {
+            combinedDecisions.push({
+              id: `dec-top-${Date.now()}-${tIdx}-${dIdx}`,
+              topic: d.topic,
+              decision: d.decision,
+              responsible: d.responsible,
+              duration: d.duration,
+              monitoringMethod: d.monitoringMethod,
+              status: "in_progress",
+            });
+          });
+        });
+
+        const updatedMeeting: Meeting = {
+          ...existing,
+          agenda: combinedAgenda,
+          kpis: combinedKpis,
+          decisions: combinedDecisions,
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedList = meetings.map((m) => (m.id === targetMeetingId ? updatedMeeting : m));
+        setMeetings(updatedList);
+        setSelectedMeeting(updatedMeeting);
+        setCurrentTab("meeting-view");
+      }
+    }
+  };
+
+  // Add Topic(s) to Round (New or Existing)
+  const handleAddTopicToRound = (topicList: MeetingTopic[], targetRoundId?: string) => {
+    const obsList: StandardObservationItem[] = [];
+    topicList.forEach((t) => {
+      if (t.sampleDecisions && t.sampleDecisions.length > 0) {
+        t.sampleDecisions.forEach((d, idx) => {
+          obsList.push({
+            id: `top-obs-${Date.now()}-${idx}`,
+            category: t.category,
+            location: t.targetDepartments?.[0] || t.category,
+            observation: d.topic,
+            recommendation: d.decision,
+            responsible: d.responsible,
+            duration: d.duration,
+            monitoringMethod: d.monitoringMethod,
+            severity: "high",
+          });
+        });
+      } else {
+        obsList.push({
+          id: `top-obs-${Date.now()}`,
+          category: t.category,
+          location: t.targetDepartments?.[0] || t.category,
+          observation: t.title,
+          recommendation: t.description,
+          responsible: "مشرف التمريض ومكافحة العدوى",
+          duration: "أسبوع",
+          monitoringMethod: "المرور الميداني",
+          severity: "high",
+        });
+      }
+    });
+
+    handleAddObservationToRound(obsList, targetRoundId);
   };
 
   // Convert Round Observations to a Meeting
@@ -769,6 +959,22 @@ export default function App() {
             onUpdateMonthlyTemplates={(newTemplates) => setMonthlyTemplates(newTemplates)}
             onCreateMeetingFromMonth={handleCreateMeetingFromMonth}
             centerSettings={centerSettings}
+          />
+        )}
+
+        {/* TAB 5: Observations Bank (بنك الملاحظات وموضوعات الاجتماعات) */}
+        {currentTab === "observations-bank" && (
+          <ObservationsBankView
+            topics={topics}
+            meetings={meetings}
+            rounds={rounds}
+            centerSettings={centerSettings}
+            onAddObservationToRound={handleAddObservationToRound}
+            onAddObservationToMeeting={handleAddObservationToMeeting}
+            onAddTopicToMeeting={handleAddTopicToMeeting}
+            onAddTopicToRound={handleAddTopicToRound}
+            onOpenNewRound={handleNewRound}
+            onOpenNewMeeting={handleNewMeeting}
           />
         )}
 

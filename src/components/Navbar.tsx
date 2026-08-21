@@ -80,6 +80,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              onClick={() => setCurrentTab("observations-bank")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-2xs ${
+                currentTab === "observations-bank"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200"
+              }`}
+              title="بنك الملاحظات الميدانية القياسية وموضوعات الاجتماعات"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">بنك الملاحظات</span>
+            </button>
+
+            <button
               onClick={() => setCurrentTab("topics-library")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-2xs ${
                 currentTab === "topics-library"
@@ -89,16 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="مكتبة موضوعات اجتماعات مكافحة العدوى"
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">مكتبة الموضوعات</span>
-            </button>
-
-            <button
-              onClick={onOpenObservationsBank}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors shadow-2xs"
-              title="بنك الملاحظات الميدانية القياسية والتوصيات"
-            >
-              <Layers className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden lg:inline">بنك الملاحظات</span>
+              <span className="hidden lg:inline">مكتبة الموضوعات</span>
             </button>
 
             <button
@@ -148,18 +152,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
-              onClick={() => setCurrentTab("topics-library")}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
-                currentTab === "topics-library"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>مكتبة الموضوعات</span>
-            </button>
-
-            <button
               onClick={() => setCurrentTab("rounds")}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 currentTab === "rounds" || currentTab === "round-view" || currentTab === "round-edit"
@@ -181,6 +173,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <CalendarDays className="w-4 h-4" />
               <span>الخطة السنوية (12 شهراً)</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentTab("observations-bank")}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                currentTab === "observations-bank"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>بنك الملاحظات</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentTab("topics-library")}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                currentTab === "topics-library"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>مكتبة الموضوعات</span>
             </button>
           </nav>
 
