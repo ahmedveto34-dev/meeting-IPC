@@ -11,6 +11,8 @@ import {
   FileDown,
   BookOpen,
   Upload,
+  LogOut,
+  Lock,
 } from "lucide-react";
 import { CenterSettings } from "../types";
 
@@ -24,6 +26,7 @@ interface NavbarProps {
   onOpenTemplatesManager: () => void;
   onNewMeeting: () => void;
   onNewRound: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -36,6 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenTemplatesManager,
   onNewMeeting,
   onNewRound,
+  onLogout,
 }) => {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs print:hidden">
@@ -51,7 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-slate-900 text-base sm:text-lg leading-tight tracking-tight">
-                  {centerSettings.centerName || "مركز د احمد مصطفى للعيون"}
+                  {centerSettings.centerName || "Waheed IPC"}
                 </h1>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                   {centerSettings.departmentTitle || "لجنة مكافحة العدوى"}
@@ -113,6 +117,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Settings className="w-4 h-4" />
             </button>
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="p-2 rounded-md text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors"
+                title="قفل النظام وتسجيل الخروج"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

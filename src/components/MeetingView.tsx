@@ -13,6 +13,7 @@ import {
   ZoomIn,
   ZoomOut,
   Type,
+  Trash2,
 } from "lucide-react";
 import { Meeting } from "../types";
 import { exportMeetingToDocx } from "../utils/docxExport";
@@ -22,6 +23,7 @@ interface MeetingViewProps {
   onEdit: (meeting: Meeting) => void;
   onBack: () => void;
   onDuplicate: (meeting: Meeting) => void;
+  onDelete?: (id: string) => void;
 }
 
 export const MeetingView: React.FC<MeetingViewProps> = ({
@@ -29,10 +31,19 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
   onEdit,
   onBack,
   onDuplicate,
+  onDelete,
 }) => {
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fontSizeMode, setFontSizeMode] = useState<"normal" | "large" | "xlarge">("large");
+
+  const handleDelete = () => {
+    if (window.confirm(`هل أنت متأكد تماماً من حذف محضر الاجتماع رقم (${meeting.meetingNumber}) المنعقد بتاريخ ${meeting.date}؟\nلا يمكن التراجع عن هذا الإجراء.`)) {
+      if (onDelete) {
+        onDelete(meeting.id);
+      }
+    }
+  };
 
   const handleDownloadDocx = async () => {
     try {
@@ -188,6 +199,17 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
             <span>تعديل المحضر</span>
           </button>
 
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors shadow-2xs"
+              title="حذف هذا المحضر نهائياً"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>حذف المحضر</span>
+            </button>
+          )}
+
           <button
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-800 bg-white border-2 border-slate-400 hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
@@ -218,7 +240,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
         <div className="mb-6 flex justify-between items-start border-b-2 border-slate-800 pb-4">
           <div className="text-right">
             <h1 className={`${fontSizeConfig.heading1} text-slate-900 tracking-tight`}>
-              {meeting.centerName || "مركز د احمد مصطفى للعيون"}
+              {meeting.centerName || "Waheed IPC"}
             </h1>
             <p className={`${fontSizeConfig.bodyText} font-bold text-slate-700 mt-1`}>
               {meeting.departmentTitle || "لجنة مكافحة العدوى"}

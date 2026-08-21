@@ -496,7 +496,7 @@ export async function exportMeetingToDocx(meeting: Meeting) {
             spacing: { after: 120 },
             children: [
               new TextRun({
-                text: meeting.centerName || "مركز د احمد مصطفى للعيون",
+                text: meeting.centerName || "Waheed IPC",
                 bold: true,
                 font: headerFont,
                 size: 28,

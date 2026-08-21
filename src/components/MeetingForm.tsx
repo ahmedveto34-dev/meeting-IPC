@@ -75,13 +75,31 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   );
 
   // Agenda
-  const [agenda, setAgenda] = useState<string[]>(
-    initialMeeting?.agenda || [
+  const [agenda, setAgenda] = useState<string[]>(() => {
+    if (initialMeeting?.agenda && initialMeeting.agenda.length > 0) {
+      // Ensure 'ما لم يتم إنجازه من الاجتماع السابق' is present as the first item if not already
+      const hasPrior = initialMeeting.agenda.some((a) =>
+        a.includes("ما لم يتم إنجازه")
+      );
+      if (hasPrior) {
+        // Move it to index 0
+        const withoutPrior = initialMeeting.agenda.filter(
+          (a) => !a.includes("ما لم يتم إنجازه")
+        );
+        const priorItem = initialMeeting.agenda.find((a) =>
+          a.includes("ما لم يتم إنجازه")
+        )!;
+        return [priorItem, ...withoutPrior];
+      }
+      return ["ما لم يتم إنجازه من الاجتماع السابق", ...initialMeeting.agenda];
+    }
+    return [
+      "ما لم يتم إنجازه من الاجتماع السابق",
       "مراجعة تقرير المرور الميداني الأخير وملاحظات الأقسام",
       "متابعة الالتزام بغسيل الأيدي وتوفر المستلزمات",
       "تقييم إجراءات مكافحة العدوى ونظافة الأجهزة",
-    ]
-  );
+    ];
+  });
   const [newAgendaItem, setNewAgendaItem] = useState<string>("");
 
   // Previous meeting
@@ -642,7 +660,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
               value={centerName}
               onChange={(e) => setCenterName(e.target.value)}
               className="w-full text-xs sm:text-sm rounded-lg border border-slate-300 p-2.5 focus:ring-2 focus:ring-teal-500"
-              placeholder="مثال: مركز د احمد مصطفى للعيون"
+              placeholder="مثال: Waheed IPC"
               required
             />
           </div>
@@ -796,47 +814,86 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
       {/* 5. Agenda Items (جدول الأعمال) */}
       <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
           <div>
-            <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              جدول الأعمال (Agenda)
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+              <span>جدول الأعمال (Agenda)</span>
+              {agenda[0]?.includes("ما لم يتم إنجازه") && (
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  البند الأول: ما لم يتم إنجازه من الاجتماع السابق ✓
+                </span>
+              )}
             </h3>
             <p className="text-xs text-slate-500">
               الموضوعات والمحاور والنقاط المطروحة للنقاش في هذا الاجتماع
             </p>
           </div>
+          {!agenda[0]?.includes("ما لم يتم إنجازه") && (
+            <button
+              type="button"
+              onClick={() => {
+                const filtered = agenda.filter((a) => !a.includes("ما لم يتم إنجازه"));
+                setAgenda(["ما لم يتم إنجازه من الاجتماع السابق", ...filtered]);
+              }}
+              className="text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>وضع (ما لم يتم إنجازه من الاجتماع السابق) كبند أول</span>
+            </button>
+          )}
         </div>
 
         <div className="space-y-2">
-          {agenda.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200"
-            >
-              <div className="flex items-center gap-2 grow">
-                <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">
-                  {idx + 1}
-                </span>
-                <input
-                  type="text"
-                  value={item}
-                  onChange={(e) => {
-                    const copy = [...agenda];
-                    copy[idx] = e.target.value;
-                    setAgenda(copy);
-                  }}
-                  className="w-full text-xs sm:text-sm bg-transparent border-0 focus:ring-0 text-slate-800 font-medium"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemoveAgendaItem(idx)}
-                className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+          {agenda.map((item, idx) => {
+            const isFirstUnfinishedItem = idx === 0 && item.includes("ما لم يتم إنجازه");
+            return (
+              <div
+                key={idx}
+                className={`flex items-center justify-between gap-3 p-2.5 rounded-lg border transition-all ${
+                  isFirstUnfinishedItem
+                    ? "bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-200"
+                    : "bg-slate-50 border-slate-200"
+                }`}
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-2 grow">
+                  <span
+                    className={`w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ${
+                      isFirstUnfinishedItem
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {idx + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={item}
+                    onChange={(e) => {
+                      const copy = [...agenda];
+                      copy[idx] = e.target.value;
+                      setAgenda(copy);
+                    }}
+                    className={`w-full text-xs sm:text-sm bg-transparent border-0 focus:ring-0 font-medium ${
+                      isFirstUnfinishedItem ? "text-emerald-950 font-bold" : "text-slate-800"
+                    }`}
+                  />
+                  {isFirstUnfinishedItem && (
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded shrink-0 hidden sm:inline-block">
+                      البند الافتتاحي
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAgendaItem(idx)}
+                  className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                  title="حذف هذا البند"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
 
           {/* Add Agenda Item Input */}
           <div className="flex items-center gap-2 pt-2">

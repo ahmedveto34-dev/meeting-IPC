@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "./components/Navbar";
+import { AuthScreen } from "./components/AuthScreen";
 import { MeetingsList } from "./components/MeetingsList";
 import { MeetingView } from "./components/MeetingView";
 import { MeetingForm } from "./components/MeetingForm";
@@ -23,14 +24,53 @@ const STORAGE_KEYS = {
   ROUNDS: "inf_ctrl_rounds_v2",
   SETTINGS: "inf_ctrl_settings_v2",
   TOPICS: "inf_ctrl_topics_v2",
+  AUTH: "inf_ctrl_auth_session_v2",
 };
 
 export default function App() {
+  // Authentication State (PIN: 2008)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const localAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
+      const sessionAuth = sessionStorage.getItem(STORAGE_KEYS.AUTH);
+      return localAuth === "true" || sessionAuth === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleSuccessLogin = (remember: boolean) => {
+    setIsAuthenticated(true);
+    try {
+      if (remember) {
+        localStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      } else {
+        sessionStorage.setItem(STORAGE_KEYS.AUTH, "true");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleLogout = () => {
+    if (window.confirm("هل تريد قفل النظام وتسجيل الخروج؟")) {
+      setIsAuthenticated(false);
+      try {
+        localStorage.removeItem(STORAGE_KEYS.AUTH);
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
   // Center Settings State
   const [centerSettings, setCenterSettings] = useState<CenterSettings>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       const data: CenterSettings = saved ? JSON.parse(saved) : DEFAULT_CENTER_SETTINGS;
+      if (!data.centerName || data.centerName.includes("احمد مصطف") || data.centerName.includes("أحمد مصطف")) {
+        data.centerName = "Waheed IPC";
+      }
       if (data?.defaultMembers) {
         data.defaultMembers = data.defaultMembers.map((m) => ({
           ...m,
@@ -69,6 +109,7 @@ export default function App() {
       const data: Meeting[] = saved ? JSON.parse(saved) : INITIAL_MEETINGS;
       return data.map((m) => ({
         ...m,
+        centerName: (!m.centerName || m.centerName.includes("احمد مصطف") || m.centerName.includes("أحمد مصطف")) ? "Waheed IPC" : m.centerName,
         members: (m.members || []).map((mem) => ({
           ...mem,
           signatureNote: mem.signatureNote === "تم التوقيع" ? "" : (mem.signatureNote || ""),
@@ -83,7 +124,11 @@ export default function App() {
   const [rounds, setRounds] = useState<RoundReport[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ROUNDS);
-      return saved ? JSON.parse(saved) : INITIAL_ROUNDS;
+      const data: RoundReport[] = saved ? JSON.parse(saved) : INITIAL_ROUNDS;
+      return data.map((r) => ({
+        ...r,
+        centerName: (!r.centerName || r.centerName.includes("احمد مصطف") || r.centerName.includes("أحمد مصطف")) ? "Waheed IPC" : r.centerName,
+      }));
     } catch {
       return INITIAL_ROUNDS;
     }
@@ -324,6 +369,7 @@ export default function App() {
       departmentTitle: centerSettings.departmentTitle,
       members: centerSettings.defaultMembers,
       agenda: [
+        "ما لم يتم إنجازه من الاجتماع السابق",
         `مناقشة تقرير المرور الميداني بتاريخ ${round.date}`,
         ...round.observations.map((o) => `ملاحظة قسم ${o.location}: ${o.observation}`),
       ],
@@ -506,7 +552,12 @@ export default function App() {
       departmentTitle: centerSettings.departmentTitle,
       members: centerSettings.defaultMembers,
       monthThemeKey: firstTopic.recommendedMonth ? `month-${firstTopic.recommendedMonth}` : "month-1",
-      agenda: combinedAgenda.length > 0 ? combinedAgenda : ["مناقشة موضوعات مكافحة العدوى والتقارير الشهرية"],
+      agenda: [
+        "ما لم يتم إنجازه من الاجتماع السابق",
+        ...(combinedAgenda.length > 0
+          ? combinedAgenda.filter((a) => !a.includes("ما لم يتم إنجازه"))
+          : ["مناقشة موضوعات مكافحة العدوى والتقارير الشهرية"]),
+      ],
       kpis: combinedKpis.length > 0 ? combinedKpis : [
         { id: "kpi-1", name: "معدل الالتزام بغسل الأيدي", value: "%75", target: "%85" },
         { id: "kpi-2", name: "معدل تطهير ونظافة الأجهزة والأسطح", value: "%85", target: "%95" },
@@ -525,6 +576,16 @@ export default function App() {
     setCurrentTab("meeting-edit");
   };
 
+  // If not authenticated, show passcode screen
+  if (!isAuthenticated) {
+    return (
+      <AuthScreen
+        centerSettings={centerSettings}
+        onSuccessLogin={handleSuccessLogin}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col selection:bg-blue-100 selection:text-blue-900 font-['Cairo',sans-serif]">
       
@@ -539,6 +600,7 @@ export default function App() {
         onOpenTemplatesManager={() => setIsTemplatesManagerOpen(true)}
         onNewMeeting={handleNewMeeting}
         onNewRound={handleNewRound}
+        onLogout={handleLogout}
       />
 
       {/* Main Page Container */}
@@ -563,6 +625,7 @@ export default function App() {
             onEdit={handleEditMeeting}
             onBack={() => setCurrentTab("meetings")}
             onDuplicate={handleDuplicateMeeting}
+            onDelete={handleDeleteMeeting}
           />
         )}
 
@@ -620,6 +683,7 @@ export default function App() {
             onEdit={handleEditRound}
             onBack={() => setCurrentTab("rounds")}
             onConvertToMeeting={handleConvertRoundToMeeting}
+            onDelete={handleDeleteRound}
           />
         )}
 

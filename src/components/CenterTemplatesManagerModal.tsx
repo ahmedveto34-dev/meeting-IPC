@@ -44,13 +44,13 @@ const PRESET_CENTERS: Array<{
   settings: Partial<CenterSettings>;
 }> = [
   {
-    name: "مركز د/ أحمد مصطفى للعيون والليزك",
-    type: "مركز جراحات اليوم الواحد والعيون",
+    name: "Waheed IPC - مركز جراحات العيون ومكافحة العدوى",
+    type: "مركز جراحات اليوم الواحد ومكافحة العدوى",
     description: "قالب مخصص لمراكز العيون، غرف العمليات الصغرى، التعقيم الدقيق، والمناظير.",
     settings: {
-      centerName: "مركز د أحمد مصطفى للعيون",
+      centerName: "Waheed IPC",
       departmentTitle: "لجنة مكافحة العدوى",
-      medicalDirector: "أ.د / أحمد مصطفى",
+      medicalDirector: "أ.د / المدير الطبي",
       infectionControlLead: "م/ أحمد وحيد شعبان",
       nursingSupervisor: "مشرف التمريض",
       departments: [

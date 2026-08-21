@@ -158,7 +158,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={formData.centerName}
                   onChange={(e) => setFormData({ ...formData, centerName: e.target.value })}
                   className="w-full text-xs sm:text-sm rounded-md border border-slate-300 p-2.5 font-bold"
-                  placeholder="مركز د احمد مصطفى للعيون"
+                  placeholder="Waheed IPC"
                   required
                 />
               </div>

@@ -178,6 +178,17 @@ ${round.observations.map((o, idx) => `${idx + 1}. [${o.location}] ${o.observatio
             <span>تعديل التقرير</span>
           </button>
 
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors shadow-2xs"
+              title="حذف هذا التقرير نهائياً"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>حذف التقرير</span>
+            </button>
+          )}
+
           <button
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-800 bg-white border-2 border-slate-400 hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"

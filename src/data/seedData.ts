@@ -1,7 +1,7 @@
 import { CenterSettings, Meeting, RoundReport } from "../types";
 
 export const DEFAULT_CENTER_SETTINGS: CenterSettings = {
-  centerName: "مركز د احمد مصطفى للعيون",
+  centerName: "Waheed IPC",
   departmentTitle: "لجنة مكافحة العدوى",
   medicalDirector: "ا.د / احمد مصطفى",
   infectionControlLead: "م/ أحمد وحيد شعبان",
@@ -35,7 +35,7 @@ export const INITIAL_MEETINGS: Meeting[] = [
     date: "2026/6/28",
     time: "11:00 صباحاً",
     location: "قاعة اجتماعات الإدارة الطبية",
-    centerName: "مركز د احمد مصطفى للعيون",
+    centerName: "Waheed IPC",
     departmentTitle: "لجنة مكافحة العدوى",
     members: [
       { id: "m1", name: "ا.د / احمد مصطفى", role: "المدير الطبى", attended: true, signatureNote: "" },
@@ -44,6 +44,7 @@ export const INITIAL_MEETINGS: Meeting[] = [
       { id: "m4", name: "م/ أحمد وحيد شعبان", role: "مسئول مكافحة العدوى", attended: true, signatureNote: "" },
     ],
     agenda: [
+      "ما لم يتم إنجازه من الاجتماع السابق",
       "عدم اعطاء الوقت الكافي في غرف العمليات بعد كل حالة والأخرى",
       "تطهير موضع فحص المريض على الجهاز بعد كل حالة",
       "عدم توفير المناديل علي احواض غسيل الايدي",
@@ -162,7 +163,7 @@ export const INITIAL_ROUNDS: RoundReport[] = [
     period: "صباحي",
     inspector: "م/ أحمد وحيد شعبان",
     supervisorRole: "مشرف مكافحة العدوى",
-    centerName: "مركز د احمد مصطفى للعيون",
+    centerName: "Waheed IPC",
     observations: [
       {
         id: "ro-1",
