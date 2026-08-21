@@ -13,10 +13,10 @@ import { TopicEditModal } from "./components/TopicEditModal";
 import { ObservationsBankModal } from "./components/ObservationsBankModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { AiAssistantModal } from "./components/AiAssistantModal";
-import { CenterTemplatesManagerModal, AppExportBundle } from "./components/CenterTemplatesManagerModal";
-import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision } from "./types";
+import { CenterTemplatesManagerModal } from "./components/CenterTemplatesManagerModal";
+import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision, MonthlyThemeTemplate, AppExportBundle } from "./types";
 import { INITIAL_MEETINGS, INITIAL_ROUNDS, DEFAULT_CENTER_SETTINGS } from "./data/seedData";
-import { MONTHLY_TEMPLATES } from "./data/monthlyTemplates";
+import { MONTHLY_TEMPLATES, DEFAULT_MONTHLY_TEMPLATES, normalizeMonthlyTemplates } from "./data/monthlyTemplates";
 import { DEFAULT_TOPICS } from "./data/defaultTopics";
 
 const STORAGE_KEYS = {
@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
   ROUNDS: "inf_ctrl_rounds_v2",
   SETTINGS: "inf_ctrl_settings_v2",
   TOPICS: "inf_ctrl_topics_v2",
+  MONTHLY_TEMPLATES: "inf_ctrl_monthly_templates_v2",
   AUTH: "inf_ctrl_auth_session_v2",
 };
 
@@ -99,6 +100,20 @@ export default function App() {
       return DEFAULT_TOPICS;
     } catch {
       return DEFAULT_TOPICS;
+    }
+  });
+
+  // Monthly Meeting Plan Templates State (12 Months customizable for any medical center)
+  const [monthlyTemplates, setMonthlyTemplates] = useState<MonthlyThemeTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.MONTHLY_TEMPLATES);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return normalizeMonthlyTemplates(parsed);
+      }
+      return DEFAULT_MONTHLY_TEMPLATES;
+    } catch {
+      return DEFAULT_MONTHLY_TEMPLATES;
     }
   });
 
@@ -194,6 +209,10 @@ export default function App() {
         });
       }
     }
+    if (Array.isArray(bundle.monthlyTemplates) && bundle.monthlyTemplates.length > 0) {
+      const normalized = normalizeMonthlyTemplates(bundle.monthlyTemplates);
+      setMonthlyTemplates(normalized);
+    }
   };
 
   // Sync to LocalStorage
@@ -228,6 +247,14 @@ export default function App() {
       console.error(e);
     }
   }, [rounds]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.MONTHLY_TEMPLATES, JSON.stringify(monthlyTemplates));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [monthlyTemplates]);
 
   // Meeting Handlers
   const handleViewMeeting = (meeting: Meeting) => {
@@ -269,13 +296,43 @@ export default function App() {
 
   const handleDuplicateMeeting = (meeting: Meeting) => {
     const nextNum = String(Number(meeting.meetingNumber) + 1 || meetings.length + 1);
+    
+    // Identify unfinished items to carry over to the top of the new meeting
+    const unfinishedDecisions = meeting.decisions.filter(
+      (d) => d.status !== "completed" || d.isCarriedOver
+    );
+    const decisionsToCarry = unfinishedDecisions.length > 0 ? unfinishedDecisions : meeting.decisions;
+    const carriedOverDecisions: MeetingDecision[] = decisionsToCarry.map((d, idx) => ({
+      ...d,
+      id: `dec-carry-${Date.now()}-${idx}`,
+      status: "in_progress",
+      isCarriedOver: true,
+      sourceMeetingNumber: meeting.meetingNumber,
+    }));
+
+    const otherDecisions = meeting.decisions
+      .filter((d) => d.status === "completed" && !d.isCarriedOver)
+      .map((d, idx) => ({
+        ...d,
+        id: `dec-new-${Date.now()}-${idx}`,
+        status: "in_progress" as const,
+        isCarriedOver: false,
+      }));
+
+    const summaryFollowUp = carriedOverDecisions.map((d) => d.topic).slice(0, 3).join(" / ");
+
     const newDuplicatedMeeting: Meeting = {
       ...meeting,
       id: `meeting-${Date.now()}`,
       meetingNumber: nextNum,
       date: new Date().toISOString().split("T")[0].replace(/-/g, "/"),
       previousMeetingDate: meeting.date,
-      previousMeetingFollowUp: `متابعة تنفيذ قرارات وتوصيات الاجتماع رقم (${meeting.meetingNumber})`,
+      previousMeetingFollowUp: summaryFollowUp || `متابعة تنفيذ قرارات وتوصيات الاجتماع رقم (${meeting.meetingNumber})`,
+      agenda: [
+        "ما لم يتم إنجازه من الاجتماع السابق",
+        ...meeting.agenda.filter((a) => !a.includes("ما لم يتم إنجازه")),
+      ],
+      decisions: [...carriedOverDecisions, ...otherDecisions],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -403,7 +460,7 @@ export default function App() {
 
   // Create meeting from monthly template key
   const handleCreateMeetingFromMonth = (monthKey: string) => {
-    const tmpl = MONTHLY_TEMPLATES.find((t) => t.key === monthKey);
+    const tmpl = monthlyTemplates.find((t) => t.key === monthKey) || MONTHLY_TEMPLATES.find((t) => t.key === monthKey);
     if (!tmpl) return;
 
     const nextNum = String(tmpl.monthIndex);
@@ -636,6 +693,8 @@ export default function App() {
             centerSettings={centerSettings}
             availableRounds={rounds}
             availableTopics={topics}
+            availableMeetings={meetings}
+            monthlyTemplates={monthlyTemplates}
             onSave={handleSaveMeeting}
             onCancel={() => {
               if (selectedMeeting) {
@@ -706,7 +765,10 @@ export default function App() {
         {/* TAB 4: 12-Month Annual Plan */}
         {currentTab === "monthly-plan" && (
           <MonthlyPlanView
+            monthlyTemplates={monthlyTemplates}
+            onUpdateMonthlyTemplates={(newTemplates) => setMonthlyTemplates(newTemplates)}
             onCreateMeetingFromMonth={handleCreateMeetingFromMonth}
+            centerSettings={centerSettings}
           />
         )}
 
@@ -751,8 +813,10 @@ export default function App() {
         meetings={meetings}
         rounds={rounds}
         topics={topics}
+        monthlyTemplates={monthlyTemplates}
         onImportBundle={handleImportBundle}
         onUpdateCenterSettings={(newSettings) => setCenterSettings(newSettings)}
+        onUpdateMonthlyTemplates={(newTemplates) => setMonthlyTemplates(newTemplates)}
       />
 
       <AiAssistantModal

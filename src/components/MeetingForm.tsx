@@ -18,9 +18,16 @@ import {
   Tag,
   CheckSquare,
   Filter,
+  ArrowUp,
+  ArrowDown,
+  History,
+  RotateCcw,
+  ListOrdered,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
-import { CenterSettings, Meeting, MeetingDecision, Member, PerformanceIndicator, RoundReport, MeetingTopic } from "../types";
-import { MONTHLY_TEMPLATES } from "../data/monthlyTemplates";
+import { CenterSettings, Meeting, MeetingDecision, Member, PerformanceIndicator, RoundReport, MeetingTopic, MonthlyThemeTemplate } from "../types";
+import { MONTHLY_TEMPLATES as DEFAULT_TEMPLATES_FALLBACK } from "../data/monthlyTemplates";
 import { STANDARD_OBSERVATIONS_LIBRARY } from "../data/standardObservations";
 import { TopicsPickerModal } from "./TopicsPickerModal";
 
@@ -29,6 +36,8 @@ interface MeetingFormProps {
   centerSettings: CenterSettings;
   availableRounds: RoundReport[];
   availableTopics?: MeetingTopic[];
+  availableMeetings?: Meeting[];
+  monthlyTemplates?: MonthlyThemeTemplate[];
   onSave: (meeting: Meeting) => void;
   onCancel: () => void;
   onOpenAiHelper?: () => void;
@@ -39,6 +48,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   centerSettings,
   availableRounds,
   availableTopics = [],
+  availableMeetings = [],
+  monthlyTemplates = DEFAULT_TEMPLATES_FALLBACK,
   onSave,
   onCancel,
   onOpenAiHelper,
@@ -140,10 +151,14 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
   // UI helpers
   const [selectedRoundToImport, setSelectedRoundToImport] = useState<string>("");
+  const [selectedPrevMeetingToImport, setSelectedPrevMeetingToImport] = useState<string>(() => {
+    const priorMeetings = (availableMeetings || []).filter((m) => m.id !== initialMeeting?.id);
+    return priorMeetings.length > 0 ? priorMeetings[0].id : "";
+  });
 
   // Handler: Apply Monthly Template Preset
   const handleApplyMonthTemplate = (monthKey: string) => {
-    const tmpl = MONTHLY_TEMPLATES.find((t) => t.key === monthKey);
+    const tmpl = monthlyTemplates.find((t) => t.key === monthKey);
     if (!tmpl) return;
 
     if (
@@ -175,6 +190,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         duration: d.duration,
         monitoringMethod: d.monitoringMethod,
         status: "in_progress",
+        isCarriedOver: false,
       }))
     );
   };
@@ -231,6 +247,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             duration: dec.duration,
             monitoringMethod: dec.monitoringMethod,
             status: "in_progress",
+            isCarriedOver: false,
           });
         });
       }
@@ -292,6 +309,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
       duration: "3 أيام",
       monitoringMethod: "المرور الميداني",
       status: obs.status,
+      isCarriedOver: false,
     }));
 
     // Append to decisions & agenda
@@ -300,6 +318,111 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
     setDecisions((prev) => [...prev, ...importedDecisions]);
     setSelectedRoundToImport("");
     alert(`تم استيراد ${round.observations.length} ملاحظة وتوصية بنجاح إلى جدول الأعمال والقرارات!`);
+  };
+
+  // Handler: Import Unfinished Decisions from Previous Meeting to top of table
+  const handleImportUnfinishedFromMeeting = (prevMeetingId: string) => {
+    const prevMeeting = (availableMeetings || []).find((m) => m.id === prevMeetingId);
+    if (!prevMeeting) {
+      alert("يرجى اختيار اجتماع سابق صالح");
+      return;
+    }
+
+    // Unfinished decisions: status !== 'completed' or already marked as isCarriedOver
+    const unfinishedDecisions = prevMeeting.decisions.filter(
+      (d) => d.status !== "completed" || d.isCarriedOver
+    );
+
+    const decisionsToTake = unfinishedDecisions.length > 0 ? unfinishedDecisions : prevMeeting.decisions;
+
+    if (decisionsToTake.length === 0) {
+      alert(`لا توجد قرارات مسجلة في الاجتماع رقم (${prevMeeting.meetingNumber})`);
+      return;
+    }
+
+    const carriedItems: MeetingDecision[] = decisionsToTake.map((d, idx) => ({
+      id: `dec-carry-${Date.now()}-${idx}`,
+      topic: d.topic,
+      decision: d.decision,
+      responsible: d.responsible || "مشرف التمريض",
+      duration: d.duration || "3 أيام",
+      monitoringMethod: d.monitoringMethod || "المرور الميداني",
+      status: "in_progress",
+      isCarriedOver: true,
+      sourceMeetingNumber: prevMeeting.meetingNumber,
+    }));
+
+    // Prevent duplicates
+    const existingTopics = new Set(decisions.map((d) => d.topic.trim()));
+    const uniqueCarried = carriedItems.filter((d) => !existingTopics.has(d.topic.trim()));
+
+    if (uniqueCarried.length === 0) {
+      alert("تم إدراج كافة موضوعات هذا الاجتماع مسبقاً في الجدول!");
+      return;
+    }
+
+    // Place carried items FIRST, then current items
+    const existingCarried = decisions.filter((d) => d.isCarriedOver);
+    const existingCurrent = decisions.filter((d) => !d.isCarriedOver);
+    setDecisions([...existingCarried, ...uniqueCarried, ...existingCurrent]);
+
+    // Fill previous meeting metadata
+    if (prevMeeting.date) {
+      setPreviousMeetingDate(prevMeeting.date);
+    }
+    const summary = uniqueCarried.map((d) => d.topic).slice(0, 3).join(" / ");
+    if (summary) {
+      setPreviousMeetingFollowUp(summary);
+    }
+
+    // Put carried items at the top of Agenda under item 1
+    setAgenda((prev) => {
+      const withoutPrior = prev.filter((a) => !a.includes("ما لم يتم إنجازه"));
+      return ["ما لم يتم إنجازه من الاجتماع السابق", ...withoutPrior];
+    });
+
+    alert(
+      `تم استيراد ${uniqueCarried.length} موضوعاً غير منجز من الاجتماع رقم (${prevMeeting.meetingNumber}) بنجاح ووضعها في أول الجدول لمناقشتها مجدداً!`
+    );
+  };
+
+  // Handler: Re-sort decisions so all carried-over (unfinished) items are first, then current
+  const handleSortCarriedOverFirst = () => {
+    const carried = decisions.filter((d) => d.isCarriedOver);
+    const current = decisions.filter((d) => !d.isCarriedOver);
+    setDecisions([...carried, ...current]);
+    alert(
+      `تم ترتيب الجدول بنجاح:\n• ${carried.length} موضوعاً مرحلاً من الاجتماع السابق أولاً.\n• ${current.length} موضوعاً للاجتماع الحالي ثانياً.`
+    );
+  };
+
+  // Handler: Toggle Carried Over classification for a single decision
+  const handleToggleCarriedOver = (decisionId: string) => {
+    setDecisions(
+      decisions.map((d) => {
+        if (d.id === decisionId) {
+          const nextVal = !d.isCarriedOver;
+          return {
+            ...d,
+            isCarriedOver: nextVal,
+            sourceMeetingNumber: nextVal ? (d.sourceMeetingNumber || "السابق") : undefined,
+          };
+        }
+        return d;
+      })
+    );
+  };
+
+  // Handler: Move decision row Up or Down
+  const handleMoveDecision = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === decisions.length - 1) return;
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    const updated = [...decisions];
+    const temp = updated[index];
+    updated[index] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setDecisions(updated);
   };
 
   // Agenda manipulation
@@ -314,7 +437,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   };
 
   // Decision manipulation
-  const handleAddDecision = () => {
+  const handleAddDecision = (isCarriedOver: boolean = false) => {
     const newDec: MeetingDecision = {
       id: `dec-${Date.now()}`,
       topic: "",
@@ -323,14 +446,27 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
       duration: "3 أيام",
       monitoringMethod: "المرور",
       status: "in_progress",
+      isCarriedOver: isCarriedOver,
+      sourceMeetingNumber: isCarriedOver ? "السابق" : undefined,
     };
-    setDecisions([...decisions, newDec]);
+    if (isCarriedOver) {
+      // Put at the end of carried over items (before current ones)
+      const lastCarriedIdx = decisions.reduce(
+        (acc, d, idx) => (d.isCarriedOver ? idx : acc),
+        -1
+      );
+      const updated = [...decisions];
+      updated.splice(lastCarriedIdx + 1, 0, newDec);
+      setDecisions(updated);
+    } else {
+      setDecisions([...decisions, newDec]);
+    }
   };
 
   const handleUpdateDecision = (
     id: string,
     field: keyof MeetingDecision,
-    value: string
+    value: any
   ) => {
     setDecisions(
       decisions.map((d) => (d.id === id ? { ...d, [field]: value } : d))
@@ -522,7 +658,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
                 className="w-full sm:w-auto bg-white border border-slate-300 text-slate-800 text-xs font-semibold rounded-lg px-3 py-2 shadow-2xs focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">محور الخطة السنوية (اختياري)...</option>
-                {MONTHLY_TEMPLATES.map((tmpl) => (
+                {monthlyTemplates.map((tmpl) => (
                   <option key={tmpl.key} value={tmpl.key}>
                     محور: {tmpl.monthName}
                   </option>
@@ -590,7 +726,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         {/* Selected Theme/Topic Details Banner */}
         {(() => {
           const matchedTopic = availableTopics.find((t) => t.id === selectedTopicId);
-          const currentTmpl = MONTHLY_TEMPLATES.find((t) => t.key === selectedMonthKey);
+          const currentTmpl = monthlyTemplates.find((t) => t.key === selectedMonthKey);
           const summaryText = matchedTopic?.description || currentTmpl?.focusSummary;
           if (!summaryText) return null;
           return (
@@ -639,6 +775,61 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
               className="px-3 py-1.5 rounded-md text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap shadow-2xs"
             >
               استيراد
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 2.1 Carry-Over from Previous Meeting (ترحيل ومتابعة ما لم يتم إنجازه من الاجتماع السابق للمناقشة أولاً) */}
+      {(availableMeetings || []).filter((m) => m.id !== initialMeeting?.id).length > 0 && (
+        <div className="bg-amber-50/80 rounded-xl p-4 sm:p-5 border border-amber-200/90 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-bold text-slate-900 text-xs sm:text-sm">
+                  ترحيل ما لم يتم إنجازه من الاجتماع السابق للمناقشة مجدداً
+                </h4>
+                <span className="text-[10px] font-extrabold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md border border-amber-300">
+                  أولوية: يوضع أولاً في الجدول
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                استيراد الموضوعات والقرارات غير المنجزة من محضر سابق لوضعها تلقائياً في بداية جدول القرارات وجدول الأعمال للمناقشة مجدداً.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full lg:w-auto shrink-0">
+            <select
+              value={selectedPrevMeetingToImport}
+              onChange={(e) => setSelectedPrevMeetingToImport(e.target.value)}
+              className="bg-white border border-amber-300 text-slate-800 text-xs font-semibold rounded-lg px-3 py-2 grow lg:grow-0 focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">-- اختر المحضر السابق --</option>
+              {(availableMeetings || [])
+                .filter((m) => m.id !== initialMeeting?.id)
+                .map((m) => {
+                  const unfinishedCount = m.decisions.filter(
+                    (d) => d.status !== "completed" || d.isCarriedOver
+                  ).length;
+                  return (
+                    <option key={m.id} value={m.id}>
+                      اجتماع رقم ({m.meetingNumber}) - {m.date || m.day} [{unfinishedCount} موضوع غير منجز]
+                    </option>
+                  );
+                })}
+            </select>
+            <button
+              type="button"
+              disabled={!selectedPrevMeetingToImport}
+              onClick={() => handleImportUnfinishedFromMeeting(selectedPrevMeetingToImport)}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors whitespace-nowrap shadow-xs flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>ترحيل للمناقشة أولاً</span>
             </button>
           </div>
         </div>
@@ -1023,128 +1214,266 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
 
       {/* 7. Decisions and Recommendations (القرارات والتوصيات - العمود الفقري للمحضر) */}
       <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-              القرارات والتوصيات المعتمدة (Decisions & Recommendations)
-            </h3>
-            <p className="text-xs text-slate-500">
-              تحديد الإجراء التصحيحي، والمسؤول عن التنفيذ، والمدة الزمنية، ووسيلة المتابعة
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                القرارات والتوصيات المعتمدة (Decisions & Recommendations)
+              </h3>
+              {/* Stats badges */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold border border-slate-200">
+                  الإجمالي: {decisions.length}
+                </span>
+                <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold border border-amber-300">
+                  📌 {decisions.filter((d) => d.isCarriedOver).length} مرحل لم ينجز
+                </span>
+                <span className="bg-teal-50 text-teal-800 px-2 py-0.5 rounded-md font-bold border border-teal-200">
+                  🆕 {decisions.filter((d) => !d.isCarriedOver).length} للاجتماع الحالي
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              يتم وضع الموضوعات غير المنجزة من الاجتماع السابق أولاً في الجدول للمناقشة والمتابعة، يليها موضوعات الاجتماع الحالي
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleAddDecision}
-            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-2xs self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>إضافة قرار / توصية جديدة</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSortCarriedOverFirst}
+              title="إعادة فرز وترتيب الجدول ليظهر ما لم ينجز من الاجتماع السابق أولاً ثم موضوعات الحالي"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors shadow-2xs"
+            >
+              <ListOrdered className="w-3.5 h-3.5" />
+              <span>ترتيب: ما لم ينجز أولاً ⬇️</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddDecision(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 transition-colors shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ موضوع مرحل من السابق</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleAddDecision(false)}
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ موضوع الاجتماع الحالي</span>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-4">
-          {decisions.map((decision, index) => (
-            <div
-              key={decision.id || index}
-              className="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-3 relative group"
-            >
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-md">
-                  قرار / توصية #{index + 1}
-                </span>
+          {decisions.map((decision, index) => {
+            const isCarried = !!decision.isCarriedOver;
+            return (
+              <div
+                key={decision.id || index}
+                className={`p-4 rounded-xl space-y-3 relative group transition-all ${
+                  isCarried
+                    ? "bg-amber-50/70 border-2 border-amber-300 shadow-2xs"
+                    : "bg-slate-50 border border-slate-300"
+                }`}
+              >
+                {/* Header of each decision item */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`text-xs font-extrabold px-2.5 py-1 rounded-md border ${
+                        isCarried
+                          ? "bg-amber-200/80 text-amber-950 border-amber-400"
+                          : "bg-teal-50 text-teal-900 border-teal-200"
+                      }`}
+                    >
+                      {isCarried
+                        ? `📌 [مرحل لم ينجز] قرار #${index + 1}`
+                        : `🆕 [موضوع الحالي] قرار #${index + 1}`}
+                    </span>
 
-                <button
-                  type="button"
-                  onClick={() => handleRemoveDecision(decision.id)}
-                  className="text-rose-500 hover:text-rose-700 p-1 text-xs flex items-center gap-1 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>حذف</span>
-                </button>
+                    {/* Quick Toggle Carried Over */}
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCarriedOver(decision.id)}
+                      className="text-[11px] px-2 py-0.5 rounded border bg-white hover:bg-slate-100 text-slate-700 border-slate-300 transition-colors flex items-center gap-1"
+                      title="تبديل تصنيف هذا الموضوع بين مرحل من السابق أو موضوع حالي"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500" />
+                      <span>{isCarried ? "تحويل لموضوع حالي" : "تصنيف كمرحل من السابق"}</span>
+                    </button>
+
+                    {/* Status selector pills */}
+                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDecision(decision.id, "status", "in_progress")}
+                        className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                          decision.status === "in_progress" || !decision.status
+                            ? "bg-amber-500 text-white"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        قيد التنفيذ / لم ينجز
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDecision(decision.id, "status", "pending")}
+                        className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                          decision.status === "pending"
+                            ? "bg-slate-600 text-white"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        معلق
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDecision(decision.id, "status", "completed")}
+                        className={`px-2 py-0.5 rounded font-bold transition-colors ${
+                          decision.status === "completed"
+                            ? "bg-emerald-600 text-white"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        تم الإنجاز
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right side controls: Move Up, Move Down, Delete */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => handleMoveDecision(index, "up")}
+                      className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-slate-200 transition-colors"
+                      title="رفع للأعلى"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === decisions.length - 1}
+                      onClick={() => handleMoveDecision(index, "down")}
+                      className="p-1 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-slate-200 transition-colors"
+                      title="إنزال للأسفل"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDecision(decision.id)}
+                      className="text-rose-500 hover:text-rose-700 p-1 text-xs flex items-center gap-1 transition-colors mr-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700">
+                        {isCarried ? "الموضوع المرحل لم ينجز (لإعادة المناقشة)" : "الموضوع / الملاحظة"}
+                      </label>
+                      {isCarried && (
+                        <div className="flex items-center gap-1 text-[11px] text-amber-800 font-semibold">
+                          <span>من محضر رقم:</span>
+                          <input
+                            type="text"
+                            value={decision.sourceMeetingNumber || ""}
+                            onChange={(e) =>
+                              handleUpdateDecision(decision.id, "sourceMeetingNumber", e.target.value)
+                            }
+                            placeholder="السابق"
+                            className="w-14 text-center px-1 py-0.5 bg-white border border-amber-300 rounded text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={decision.topic}
+                      onChange={(e) => handleUpdateDecision(decision.id, "topic", e.target.value)}
+                      placeholder="مثال: عدم اعطاء الوقت الكافي في غرف العمليات بعد كل حالة والأخرى"
+                      className="w-full text-xs sm:text-sm rounded-lg border border-slate-300 p-2.5 bg-white font-bold"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      القرار / التوصية / الإجراء التصحيحي المستأنف
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={decision.decision}
+                      onChange={(e) => handleUpdateDecision(decision.id, "decision", e.target.value)}
+                      placeholder="مثال: اعطاء وقت 15 دقيقة من أجل تنظيف وتطهير وتغيير هواء الغرفة"
+                      className="w-full text-xs sm:text-sm rounded-lg border border-slate-300 p-2.5 bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      المسؤول عن التنفيذ
+                    </label>
+                    <input
+                      type="text"
+                      value={decision.responsible}
+                      onChange={(e) =>
+                        handleUpdateDecision(decision.id, "responsible", e.target.value)
+                      }
+                      placeholder="مشرف التمريض / تمريض العمليات"
+                      className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      المدة الزمنية
+                    </label>
+                    <input
+                      type="text"
+                      value={decision.duration}
+                      onChange={(e) =>
+                        handleUpdateDecision(decision.id, "duration", e.target.value)
+                      }
+                      placeholder="يومين / 3 أيام / أسبوع / فوري"
+                      className="w-full text-xs font-bold rounded-lg border border-slate-300 p-2 bg-white text-center"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      وسيلة المتابعة
+                    </label>
+                    <input
+                      type="text"
+                      value={decision.monitoringMethod}
+                      onChange={(e) =>
+                        handleUpdateDecision(decision.id, "monitoringMethod", e.target.value)
+                      }
+                      placeholder="المرور / دفتر التسجيل / الفحص الظاهري"
+                      className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    الموضوع / الملاحظة
-                  </label>
-                  <input
-                    type="text"
-                    value={decision.topic}
-                    onChange={(e) => handleUpdateDecision(decision.id, "topic", e.target.value)}
-                    placeholder="مثال: عدم اعطاء الوقت الكافي في غرف العمليات بعد كل حالة والأخرى"
-                    className="w-full text-xs sm:text-sm rounded-lg border border-slate-300 p-2.5 bg-white font-bold"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    القرار / التوصية / الإجراء التصحيحي
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={decision.decision}
-                    onChange={(e) => handleUpdateDecision(decision.id, "decision", e.target.value)}
-                    placeholder="مثال: اعطاء وقت 15 دقيقة من أجل تنظيف وتطهير وتغيير هواء الغرفة"
-                    className="w-full text-xs sm:text-sm rounded-lg border border-slate-300 p-2.5 bg-white"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    المسؤول عن التنفيذ
-                  </label>
-                  <input
-                    type="text"
-                    value={decision.responsible}
-                    onChange={(e) =>
-                      handleUpdateDecision(decision.id, "responsible", e.target.value)
-                    }
-                    placeholder="مشرف التمريض / تمريض العمليات"
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    المدة الزمنية
-                  </label>
-                  <input
-                    type="text"
-                    value={decision.duration}
-                    onChange={(e) =>
-                      handleUpdateDecision(decision.id, "duration", e.target.value)
-                    }
-                    placeholder="يومين / 3 أيام / أسبوع / فوري"
-                    className="w-full text-xs font-bold rounded-lg border border-slate-300 p-2 bg-white text-center"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    وسيلة المتابعة
-                  </label>
-                  <input
-                    type="text"
-                    value={decision.monitoringMethod}
-                    onChange={(e) =>
-                      handleUpdateDecision(decision.id, "monitoringMethod", e.target.value)
-                    }
-                    placeholder="المرور / دفتر التسجيل / الفحص الظاهري"
-                    className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

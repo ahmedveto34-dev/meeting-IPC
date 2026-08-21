@@ -396,10 +396,21 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {meeting.decisions.map((d, index) => (
-                  <tr key={d.id || index} className="border-b border-black">
+                {[...meeting.decisions]
+                  .sort((a, b) => {
+                    if (a.isCarriedOver && !b.isCarriedOver) return -1;
+                    if (!a.isCarriedOver && b.isCarriedOver) return 1;
+                    return 0;
+                  })
+                  .map((d, index) => (
+                  <tr key={d.id || index} className={`border-b border-black ${d.isCarriedOver ? "bg-amber-50/30 print:bg-transparent" : ""}`}>
                     <td className={`border border-black px-3 py-3 font-bold text-right align-top ${fontSizeConfig.tableText}`}>
-                      <bdi className="arabic-mixed-text">{d.topic}</bdi>
+                      {d.isCarriedOver && (
+                        <span className="inline-block bg-amber-100 text-amber-950 border border-amber-300 text-[11px] font-extrabold px-1.5 py-0.5 rounded ml-1 mb-1 shadow-2xs print:border-black print:bg-slate-100">
+                          📌 [مرحل من السابق للمناقشة {d.sourceMeetingNumber ? `(محضر ${d.sourceMeetingNumber})` : ""}]
+                        </span>
+                      )}
+                      <bdi className="arabic-mixed-text block">{d.topic}</bdi>
                     </td>
                     <td className={`border border-black px-3 py-3 font-medium text-right leading-relaxed align-top ${fontSizeConfig.tableText}`}>
                       <bdi className="arabic-mixed-text">{d.decision}</bdi>

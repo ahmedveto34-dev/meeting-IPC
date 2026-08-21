@@ -59,6 +59,8 @@ export interface MeetingDecision {
   duration: string;
   monitoringMethod: string;
   status?: 'completed' | 'in_progress' | 'pending';
+  isCarriedOver?: boolean; // هل هو موضوع مرحل من الاجتماع السابق لم يتم إنجازه
+  sourceMeetingNumber?: string | number; // رقم الاجتماع السابق المنقول منه
 }
 
 export interface PerformanceIndicator {
@@ -149,4 +151,14 @@ export interface MonthlyThemeTemplate {
     monitoringMethod: string;
   }[];
   focusSummary: string;
+}
+
+export interface AppExportBundle {
+  version: string;
+  exportedAt: string;
+  centerSettings: CenterSettings;
+  meetings: Meeting[];
+  rounds: RoundReport[];
+  topics: MeetingTopic[];
+  monthlyTemplates?: MonthlyThemeTemplate[];
 }

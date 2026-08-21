@@ -68,7 +68,9 @@ export const INITIAL_MEETINGS: Meeting[] = [
         responsible: "مشرف التمريض / تمريض الفرز",
         duration: "3 أيام",
         monitoringMethod: "المرور ودفتر التسجيل فى حالة وجود حالة مشتبه بها",
-        status: "completed"
+        status: "in_progress",
+        isCarriedOver: true,
+        sourceMeetingNumber: "5"
       },
       {
         id: "dec-2",

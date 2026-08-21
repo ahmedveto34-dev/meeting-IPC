@@ -14,16 +14,10 @@ import {
   Sparkles,
   ArrowRight
 } from "lucide-react";
-import { CenterSettings, Meeting, RoundReport, MeetingTopic } from "../types";
+import { CenterSettings, Meeting, RoundReport, MeetingTopic, MonthlyThemeTemplate, AppExportBundle } from "../types";
+import { PRESET_MONTHLY_PLANS, DEFAULT_MONTHLY_TEMPLATES } from "../data/monthlyTemplates";
 
-export interface AppExportBundle {
-  version: string;
-  exportedAt: string;
-  centerSettings: CenterSettings;
-  meetings: Meeting[];
-  rounds: RoundReport[];
-  topics: MeetingTopic[];
-}
+export type { AppExportBundle };
 
 interface CenterTemplatesManagerModalProps {
   isOpen: boolean;
@@ -32,8 +26,10 @@ interface CenterTemplatesManagerModalProps {
   meetings: Meeting[];
   rounds: RoundReport[];
   topics: MeetingTopic[];
+  monthlyTemplates?: MonthlyThemeTemplate[];
   onImportBundle: (bundle: Partial<AppExportBundle>, mode: "merge" | "replace") => void;
   onUpdateCenterSettings: (newSettings: CenterSettings) => void;
+  onUpdateMonthlyTemplates?: (templates: MonthlyThemeTemplate[], planName?: string) => void;
 }
 
 // Preset Center Templates for quick 1-click adoption
@@ -133,10 +129,12 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
   meetings,
   rounds,
   topics,
+  monthlyTemplates,
   onImportBundle,
   onUpdateCenterSettings,
+  onUpdateMonthlyTemplates,
 }) => {
-  const [activeTab, setActiveTab] = useState<"export" | "upload" | "presets">("presets");
+  const [activeTab, setActiveTab] = useState<"presets" | "upload" | "export">("presets");
   const [importMode, setImportMode] = useState<"merge" | "replace">("merge");
   const [fileError, setFileError] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
@@ -155,6 +153,7 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
       meetings,
       rounds,
       topics,
+      monthlyTemplates,
     };
 
     const dataStr = JSON.stringify(bundle, null, 2);
@@ -173,7 +172,7 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
     setTimeout(() => setSuccessMsg(""), 5000);
   };
 
-  // 2. Export Only Blank Templates (Settings + Standard Topics + Observation Bank)
+  // 2. Export Only Blank Templates (Settings + Standard Topics + Monthly Templates)
   const handleExportBlankTemplate = () => {
     const bundle: Partial<AppExportBundle> = {
       version: "2.0",
@@ -182,6 +181,7 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
       meetings: [], // Empty meetings for fresh center start
       rounds: [], // Empty rounds
       topics,
+      monthlyTemplates,
     };
 
     const dataStr = JSON.stringify(bundle, null, 2);
@@ -196,7 +196,7 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setSuccessMsg("تم تصدير ملف القالب الفارغ (الإعدادات + مكتبة الموضوعات) لإنشاء مراكز جديدة.");
+    setSuccessMsg("تم تصدير ملف القالب الفارغ (الإعدادات + مكتبة الموضوعات + قوالب الأشهر الـ12) لإنشاء مراكز جديدة.");
     setTimeout(() => setSuccessMsg(""), 5000);
   };
 
@@ -257,6 +257,20 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
           return m;
         }),
       });
+
+      // Also check if there is a matching specialized monthly plan
+      if (onUpdateMonthlyTemplates) {
+        if (preset.name.includes("الأسنان")) {
+          const dentalPlan = PRESET_MONTHLY_PLANS.find((p) => p.id === "plan-dental-centers");
+          if (dentalPlan) onUpdateMonthlyTemplates(dentalPlan.templates, dentalPlan.name);
+        } else if (preset.name.includes("مستشفى") || preset.name.includes("الجراحة التخصصية")) {
+          const hospPlan = PRESET_MONTHLY_PLANS.find((p) => p.id === "plan-general-hospital");
+          if (hospPlan) onUpdateMonthlyTemplates(hospPlan.templates, hospPlan.name);
+        } else if (preset.name.includes("Waheed") || preset.name.includes("العيون")) {
+          onUpdateMonthlyTemplates(DEFAULT_MONTHLY_TEMPLATES, "قالب مراكز العيون وجراحات اليوم الواحد");
+        }
+      }
+
       setSuccessMsg(`تم تطبيق قالب "${preset.name}" بنجاح!`);
       setTimeout(() => {
         setSuccessMsg("");
@@ -458,11 +472,17 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200">
                     <span className="block text-slate-500 text-[11px]">اسم المنشأة</span>
                     <strong className="text-slate-800 truncate block">
                       {selectedFileBundle.centerSettings?.centerName || "غير محدد"}
+                    </strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                    <span className="block text-slate-500 text-[11px]">قوالب الأشهر الـ12</span>
+                    <strong className="text-emerald-700">
+                      {Array.isArray(selectedFileBundle.monthlyTemplates) ? selectedFileBundle.monthlyTemplates.length : 0} شهراً
                     </strong>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200">
