@@ -12,10 +12,21 @@ import {
   FileSpreadsheet,
   Layers,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  FileCheck2,
+  FileCheck,
+  Printer,
+  ShieldCheck,
 } from "lucide-react";
 import { CenterSettings, Meeting, RoundReport, MeetingTopic, MonthlyThemeTemplate, AppExportBundle } from "../types";
 import { PRESET_MONTHLY_PLANS, DEFAULT_MONTHLY_TEMPLATES } from "../data/monthlyTemplates";
+import { STANDARD_OBSERVATIONS_LIBRARY } from "../data/standardObservations";
+import {
+  exportMonthlyPlanToDocx,
+  exportBlankMeetingTemplateToDocx,
+  exportBlankRoundTemplateToDocx,
+  exportObservationsBankToDocx,
+} from "../utils/docxExport";
 
 export type { AppExportBundle };
 
@@ -141,6 +152,7 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
   const [selectedFileBundle, setSelectedFileBundle] = useState<AppExportBundle | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   if (!isOpen) return null;
 
@@ -198,6 +210,63 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
 
     setSuccessMsg("تم تصدير ملف القالب الفارغ (الإعدادات + مكتبة الموضوعات + قوالب الأشهر الـ12) لإنشاء مراكز جديدة.");
     setTimeout(() => setSuccessMsg(""), 5000);
+  };
+
+  // 3. Word (.docx) Exports
+  const handleExportPlanDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportMonthlyPlanToDocx(monthlyTemplates || DEFAULT_MONTHLY_TEMPLATES, centerSettings);
+      setSuccessMsg("تم تجهيز وتنزيل الخطة السنوية الشاملة بصيغة Word (.docx) منسقة بنجاح.");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error(err);
+      setFileError("حدث خطأ أثناء تصدير ملف Word.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleExportBlankMeetingDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportBlankMeetingTemplateToDocx(centerSettings);
+      setSuccessMsg("تم تنزيل نموذج محضر الاجتماع الفارغ المعتمد بصيغة Word (.docx) بنجاح.");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error(err);
+      setFileError("حدث خطأ أثناء تصدير ملف Word.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleExportBlankRoundDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportBlankRoundTemplateToDocx(centerSettings);
+      setSuccessMsg("تم تنزيل نموذج تقرير المرور الميداني الأسبوعي الفارغ بصيغة Word (.docx) بنجاح.");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error(err);
+      setFileError("حدث خطأ أثناء تصدير ملف Word.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleExportObservationsDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportObservationsBankToDocx(STANDARD_OBSERVATIONS_LIBRARY, centerSettings);
+      setSuccessMsg("تم تنزيل الدليل القياسي وبنك الملاحظات المعتمد بصيغة Word (.docx) بنجاح.");
+      setTimeout(() => setSuccessMsg(""), 5000);
+    } catch (err) {
+      console.error(err);
+      setFileError("حدث خطأ أثناء تصدير ملف Word.");
+    } finally {
+      setIsExportingDocx(false);
+    }
   };
 
   // 3. File Selection & Parsing
@@ -558,66 +627,174 @@ export const CenterTemplatesManagerModal: React.FC<CenterTemplatesManagerModalPr
           </div>
         )}
 
-        {/* Tab 3: Export Current Templates */}
+        {/* Tab 3: Export Formatted Word Documents & JSON Data Bundles */}
         {activeTab === "export" && (
-          <div className="p-6 overflow-y-auto space-y-4">
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-xs text-slate-600 space-y-2">
-              <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Download className="w-4 h-4 text-blue-600" />
-                تصدير ومشاركة منظومة مكافحة العدوى مع المراكز الأخرى
-              </h4>
-              <p className="leading-relaxed">
-                يمكنك تصدير نموذج المركز الحالي ومكتبة موضوعاته وملاحظاته في ملف رقمي موحد، ومشاركته مع مسؤولي مكافحة العدوى بالمراكز والمستشفيات التابعة لرفعه مباشرة واستخدامه فوراً.
+          <div className="p-6 overflow-y-auto space-y-6">
+            
+            {/* Section 1: Formatted Word Documents (.docx) */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h4 className="font-bold text-slate-900 text-sm">
+                  تصدير مستندات ونماذج وورد منسقة وجاهزة للطباعة (.docx)
+                </h4>
+                <span className="text-[11px] bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-bold border border-blue-200 mr-auto">
+                  ملفات Word رسمية
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                مستندات وورد منسقة بالكامل بالخطوط العربية المعتمدة (Cairo)، جداول الحضور، مؤشرات الأداء، وبنود التوصيات والاعتماد.
               </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                {/* 1. Annual Plan 12 Months Docx */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-2 text-blue-700 font-bold text-xs mb-1">
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span>الخطة السنوية الشاملة (12 شهراً)</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      ملف وورد شامل يحتوي على خطة الـ 12 شهراً، المحاور الاستراتيجية، مؤشرات الأداء المستهدفة، ونماذج التوصيات.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportPlanDocx}
+                    disabled={isExportingDocx}
+                    className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>{isExportingDocx ? "جاري التجهيز..." : "تصدير الخطة السنوية (.docx Word)"}</span>
+                  </button>
+                </div>
+
+                {/* 2. Blank Meeting Template Docx */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-2 text-blue-700 font-bold text-xs mb-1">
+                      <FileCheck2 className="w-4 h-4" />
+                      <span>نموذج محضر اجتماع فارغ معتمد</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      نموذج محضر اجتماع منسق جاهز للكتابة أو الطباعة، يحتوي على جدول الحضور، بنود جدول الأعمال، والقرارات والتوقيعات.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportBlankMeetingDocx}
+                    disabled={isExportingDocx}
+                    className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4 text-blue-600" />
+                    <span>{isExportingDocx ? "جاري التجهيز..." : "تصدير نموذج محضر فارغ (.docx)"}</span>
+                  </button>
+                </div>
+
+                {/* 3. Blank Round Report Template Docx */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs mb-1">
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span>نموذج تقرير مرور ميداني أسبوعي فارغ</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      نموذج تقرير مرور ميداني فارغ مجهز لتدوين ملاحظات التفتيش الميداني والإجراءات التصحيحية والتوقيعات الرسمية.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportBlankRoundDocx}
+                    disabled={isExportingDocx}
+                    className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    <span>{isExportingDocx ? "جاري التجهيز..." : "تصدير نموذج مرور فارغ (.docx)"}</span>
+                  </button>
+                </div>
+
+                {/* 4. Observations & Policies Bank Docx */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-purple-300 transition-all flex flex-col justify-between space-y-3 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-2 text-purple-700 font-bold text-xs mb-1">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>الدليل القياسي وبنك الملاحظات والمعايير</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      تصدير بنك الملاحظات الميدانية القياسية والإجراءات التصحيحية المعتمدة بالكامل في جدول وورد منظم.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportObservationsDocx}
+                    disabled={isExportingDocx}
+                    className="w-full py-2.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4 text-purple-600" />
+                    <span>{isExportingDocx ? "جاري التجهيز..." : "تصدير بنك الملاحظات (.docx)"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              {/* Option A: Full Bundle */}
-              <div className="p-5 rounded-xl border border-slate-200 bg-white hover:border-blue-300 transition-all flex flex-col justify-between space-y-4 shadow-2xs">
-                <div className="space-y-2">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">
-                    حزمة كاملة (الإعدادات + الموضوعات + الاجتماعات والمرور)
-                  </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    نسخة احتياطية شاملة تحتوي على جميع محاضر الاجتماعات السابقة، تقارير المرور، وإعدادات المركز بالكامل.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleExportAll}
-                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>تصدير الحزمة الكاملة (.json)</span>
-                </button>
+            {/* Section 2: Data Portability & Backup Bundles (.json) */}
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <Layers className="w-5 h-5 text-slate-600" />
+                <h4 className="font-bold text-slate-900 text-sm">
+                  حزم البيانات الرقمية لنقل المنظومة بين الحواسيب والمراكز (.json)
+                </h4>
+                <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold border border-slate-200 mr-auto">
+                  بيانات رقمية للاستيراد
+                </span>
               </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ملفات بيانات مشفرة رقمياً (JSON) مخصصة للنقل بين الحواسيب ورفعها عبر تبويب "استيراد قالب" في مراكز ومستشفيات أخرى لتطبيق نفس الإعدادات والموضوعات تلقائياً.
+              </p>
 
-              {/* Option B: Blank Template for new centers */}
-              <div className="p-5 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 transition-all flex flex-col justify-between space-y-4 shadow-2xs">
-                <div className="space-y-2">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                    <Sparkles className="w-5 h-5" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                {/* Option A: Full Backup Bundle */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 transition-all flex flex-col justify-between space-y-3">
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-xs mb-1">
+                      حزمة نسخ احتياطي كاملة (الإعدادات + الموضوعات + الاجتماعات)
+                    </h5>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      نسخة احتياطية رقمية كاملة تحتوي على جميع محاضر الاجتماعات السابقة وتقارير المرور وإعدادات المركز.
+                    </p>
                   </div>
-                  <h4 className="font-bold text-slate-900 text-sm">
-                    قالب فارغ معتمد (إعدادات + بنك الموضوعات والملاحظات فقط)
-                  </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    ملف قالب جاهز للبدء في منشأة جديدة بدون أي محاضر سابقة، مع الاحتفاظ بكامل بنك الموضوعات والمعايير القياسية.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={handleExportAll}
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-600" />
+                    <span>تصدير نسخة احتياطية (.json)</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleExportBlankTemplate}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>تصدير قالب فارغ معتمد (.json)</span>
-                </button>
+
+                {/* Option B: Blank Template for new centers */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 hover:border-slate-300 transition-all flex flex-col justify-between space-y-3">
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-xs mb-1">
+                      حزمة قالب فارغ للمراكز الجديدة (إعدادات + بنك الموضوعات)
+                    </h5>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      حزمة مخصصة لإنشاء منشأة جديدة بدون أي محاضر سابقة، لنقلها واستيرادها في مراكز أخرى.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportBlankTemplate}
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-slate-600" />
+                    <span>تصدير قالب فارغ (.json)</span>
+                  </button>
+                </div>
               </div>
             </div>
+
           </div>
         )}
 

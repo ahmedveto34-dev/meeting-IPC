@@ -16,11 +16,19 @@ import {
   Layers,
   FileCheck,
   Check,
+  FileCheck2,
+  Printer,
+  FileSpreadsheet,
 } from "lucide-react";
 import { MonthlyThemeTemplate, CenterSettings } from "../types";
 import { DEFAULT_MONTHLY_TEMPLATES } from "../data/monthlyTemplates";
 import { MonthlyTemplatesUploadModal } from "./MonthlyTemplatesUploadModal";
 import { MonthlyTemplateEditModal } from "./MonthlyTemplateEditModal";
+import {
+  exportMonthlyPlanToDocx,
+  exportBlankMeetingTemplateToDocx,
+  exportSingleMonthTemplateToDocx,
+} from "../utils/docxExport";
 
 interface MonthlyPlanViewProps {
   monthlyTemplates: MonthlyThemeTemplate[];
@@ -40,6 +48,7 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MonthlyThemeTemplate | null>(null);
   const [bannerAlert, setBannerAlert] = useState<string>("");
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
 
   const toggleExpand = (key: string) => {
     setExpandedKey(expandedKey === key ? "" : key);
@@ -70,6 +79,49 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
     }
   };
 
+  const handleExportPlanDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportMonthlyPlanToDocx(monthlyTemplates, centerSettings);
+      setBannerAlert("تم تجهيز وتنزيل الخطة السنوية الشاملة بصيغة Word (.docx) منسقة بنجاح!");
+      setTimeout(() => setBannerAlert(""), 5000);
+    } catch (err) {
+      console.error("Error exporting plan to docx:", err);
+      alert("حدث خطأ أثناء تصدير ملف Word، يرجى المحاولة مرة أخرى.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleExportBlankMeetingDocx = async () => {
+    try {
+      setIsExportingDocx(true);
+      await exportBlankMeetingTemplateToDocx(centerSettings);
+      setBannerAlert("تم تنزيل نموذج محضر الاجتماع الفارغ بصيغة Word (.docx) المنسقة بنجاح!");
+      setTimeout(() => setBannerAlert(""), 5000);
+    } catch (err) {
+      console.error("Error exporting blank meeting to docx:", err);
+      alert("حدث خطأ أثناء تصدير ملف Word، يرجى المحاولة مرة أخرى.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleExportSingleMonthDocx = async (tmpl: MonthlyThemeTemplate, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      setIsExportingDocx(true);
+      await exportSingleMonthTemplateToDocx(tmpl, centerSettings);
+      setBannerAlert(`تم تنزيل محضر اجتماع (${tmpl.monthName}) بصيغة Word (.docx) بنجاح!`);
+      setTimeout(() => setBannerAlert(""), 5000);
+    } catch (err) {
+      console.error("Error exporting single month docx:", err);
+      alert("حدث خطأ أثناء تصدير ملف Word");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
   const handleExportJson = () => {
     const exportData = {
       templateType: "monthly_meeting_templates",
@@ -91,6 +143,9 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    setBannerAlert("تم تصدير ملف البيانات الرقمية (JSON) لنقل القوالب للأجهزة والمراكز الأخرى.");
+    setTimeout(() => setBannerAlert(""), 5000);
   };
 
   return (
@@ -142,22 +197,49 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
         {/* Action Toolbar */}
         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
+            {/* Primary Action: Export Full Plan to Formatted Word */}
+            <button
+              type="button"
+              onClick={handleExportPlanDocx}
+              disabled={isExportingDocx}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              title="تصدير الخطة السنوية بالكامل (12 شهراً) في ملف Word منسق جاهز للطباعة"
+            >
+              <FileText className="w-4 h-4" />
+              <span>{isExportingDocx ? "جاري التصدير..." : "تصدير الخطة السنوية (Word .docx)"}</span>
+            </button>
+
+            {/* Export Blank Meeting Minutes Template in Word */}
+            <button
+              type="button"
+              onClick={handleExportBlankMeetingDocx}
+              disabled={isExportingDocx}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer disabled:opacity-50"
+              title="تنزيل نموذج محضر اجتماع فارغ منسق Word (.docx) للكتابة والطباعة"
+            >
+              <FileCheck2 className="w-4 h-4 text-blue-600" />
+              <span>نموذج محضر فارغ (.docx)</span>
+            </button>
+
+            {/* Import / Upload Templates */}
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
             >
-              <Upload className="w-4 h-4" />
-              <span>رفع / استيراد قوالب لمركز آخر</span>
+              <Upload className="w-4 h-4 text-slate-600" />
+              <span>رفع / استيراد قوالب</span>
             </button>
 
+            {/* Export Data Bundle (JSON) */}
             <button
               type="button"
               onClick={handleExportJson}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer"
+              title="تصدير حزمة بيانات رقمية (JSON) لنقلها واستيرادها في جهاز أو مركز آخر (لا تفتح في Word)"
             >
-              <Download className="w-4 h-4 text-slate-600" />
-              <span>تصدير قوالب الخطة (.json)</span>
+              <Download className="w-4 h-4 text-slate-500" />
+              <span>نقل البيانات لمركز آخر (.json)</span>
             </button>
           </div>
 
@@ -215,6 +297,18 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Export this month as Word .docx */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleExportSingleMonthDocx(tmpl, e)}
+                    disabled={isExportingDocx}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                    title="تنزيل محضر هذا الشهر بصيغة Word (.docx) منسق"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="hidden sm:inline">تصدير Word</span>
+                  </button>
+
                   {/* Edit Template Button */}
                   <button
                     type="button"
@@ -330,6 +424,35 @@ export const MonthlyPlanView: React.FC<MonthlyPlanViewProps> = ({
                       </div>
                     </div>
 
+                  </div>
+
+                  {/* Month Card Footer Actions */}
+                  <div className="pt-3 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
+                      <span>قالب معتمد لشهر {tmpl.monthName} جاهز للطباعة والتوثيق</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleExportSingleMonthDocx(tmpl)}
+                        disabled={isExportingDocx}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        <span>تصدير محضر ({tmpl.monthName}) بصيغة Word (.docx)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onCreateMeetingFromMonth(tmpl.key)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>بدء تعبئة المحضر</span>
+                      </button>
+                    </div>
                   </div>
 
                 </div>

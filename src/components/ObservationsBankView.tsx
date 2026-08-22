@@ -62,6 +62,7 @@ import {
   TODAY_ADDED_OBSERVATION_IDS,
   sortWithTodaySummaryFirst,
 } from "../data/todayObservationsSummary";
+import { exportObservationsBankToDocx } from "../utils/docxExport";
 
 interface ObservationsBankViewProps {
   topics: MeetingTopic[];
@@ -542,6 +543,23 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
 
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={async () => {
+                try {
+                  await exportObservationsBankToDocx(allObservations, centerSettings);
+                  setToastMessage("تم تصدير بنك الملاحظات بالكامل كملف Word (.docx) منسق بنجاح!");
+                  setTimeout(() => setToastMessage(null), 4000);
+                } catch (e) {
+                  console.error(e);
+                  alert("حدث خطأ أثناء تصدير ملف Word");
+                }
+              }}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors shadow-2xs cursor-pointer"
+              title="تصدير جميع سياسات وملاحظات مكافحة العدوى في ملف Word (.docx) منسق"
+            >
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span>تصدير البنك (Word .docx)</span>
+            </button>
             <button
               onClick={() => setShowAddObsModal(true)}
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-colors shadow-2xs"

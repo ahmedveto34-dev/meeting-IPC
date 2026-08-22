@@ -15,6 +15,7 @@ import {
   Lock,
   LayoutDashboard,
   Home,
+  Lightbulb,
 } from "lucide-react";
 import { CenterSettings } from "../types";
 
@@ -87,6 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="md:hidden font-bold">الذكاء الاصطناعي</span>
             </button>
 
+            {/* Observations Bank Button */}
             <button
               onClick={() => setCurrentTab("observations-bank")}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${

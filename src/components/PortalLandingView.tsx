@@ -17,6 +17,7 @@ import {
   TrendingUp,
   FileDown,
   ListChecks,
+  Lightbulb,
 } from "lucide-react";
 import { CenterSettings, Meeting, RoundReport } from "../types";
 import { TODAY_ADDED_OBSERVATION_IDS } from "../data/todayObservationsSummary";
@@ -263,7 +264,7 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
           <span className="text-xs text-slate-400 font-semibold hidden sm:inline">وصول فوري لكافة القواعد والسياسات المعتمدة</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
           <button
             type="button"
             onClick={onViewObservationsBank}
