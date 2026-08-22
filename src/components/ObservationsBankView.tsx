@@ -117,6 +117,21 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
     getCustomObservations()
   );
 
+  // Modal to add custom observation
+  const [showAddObsModal, setShowAddObsModal] = useState(false);
+  const [newObsForm, setNewObsForm] = useState<Partial<StandardObservationItem>>({
+    policyId: "pol-hh",
+    category: "مرور عيادة الرمد (العيادات الخارجية)",
+    location: "",
+    observation: "",
+    recommendation: "",
+    responsible: "مشرف التمريض / مسؤول مكافحة العدوى",
+    duration: "فوري",
+    monitoringMethod: "المرور الميداني اليومي",
+    severity: "high",
+    standardRef: "معايير مكافحة العدوى المعتمدة",
+  });
+
   useEffect(() => {
     const handleUpdate = () => {
       setCustomObservations(getCustomObservations());
@@ -472,7 +487,7 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
       isCustom: true,
     };
 
-    setCustomObservations([newItem, ...customObservations]);
+    saveCustomObservationsList([newItem, ...customObservations]);
     setShowAddObsModal(false);
     setNewObsForm({
       policyId: "pol-hh",
