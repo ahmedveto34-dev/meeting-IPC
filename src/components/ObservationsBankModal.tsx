@@ -30,6 +30,7 @@ import {
   EGYPTIAN_INSPECTION_CONTROL_POLICIES,
   getPolicyById
 } from "../data/infectionControlPolicies";
+import { TODAY_ADDED_OBSERVATION_IDS } from "../data/todayObservationsSummary";
 import { StandardObservationItem, CenterSettings } from "../types";
 import {
   getCustomObservations,
@@ -56,6 +57,7 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [selectedSeverity, setSelectedSeverity] = useState<string>("all");
+  const [showTodaySummaryOnly, setShowTodaySummaryOnly] = useState<boolean>(false);
   const [search, setSearch] = useState<string>("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
@@ -103,7 +105,9 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
 
   // Filtered observations
   const filtered = useMemo(() => {
+    const todaySet = new Set(TODAY_ADDED_OBSERVATION_IDS);
     return allObservations.filter((item) => {
+      const matchToday = !showTodaySummaryOnly || todaySet.has(item.id);
       const matchPolicy = selectedPolicyId === "all" || item.policyId === selectedPolicyId;
       const matchCat = selectedCategory === "الكل" || item.category === selectedCategory;
       const matchSeverity =
@@ -118,9 +122,9 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
         (item.policyName && item.policyName.toLowerCase().includes(q)) ||
         (item.egyptianGuidelineRef && item.egyptianGuidelineRef.toLowerCase().includes(q)) ||
         (item.standardRef && item.standardRef.toLowerCase().includes(q));
-      return matchPolicy && matchCat && matchSeverity && matchSearch;
+      return matchToday && matchPolicy && matchCat && matchSeverity && matchSearch;
     });
-  }, [allObservations, selectedPolicyId, selectedCategory, selectedSeverity, search]);
+  }, [allObservations, showTodaySummaryOnly, selectedPolicyId, selectedCategory, selectedSeverity, search]);
 
   // Selection toggle
   const toggleSelect = (id: string) => {
@@ -397,8 +401,31 @@ export const ObservationsBankModal: React.FC<ObservationsBankModalProps> = ({
             </div>
           </div>
 
-          {/* Department Categories Chips */}
+          {/* Department Categories Chips & Summary Quick Button */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {/* Quick Summary Pill for Today's Added Observations */}
+            <button
+              type="button"
+              onClick={() => setShowTodaySummaryOnly(!showTodaySummaryOnly)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 border ${
+                showTodaySummaryOnly
+                  ? "bg-indigo-600 text-white border-indigo-700 shadow-xs"
+                  : "bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border-indigo-200"
+              }`}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${showTodaySummaryOnly ? "text-indigo-200" : "text-indigo-600"}`} />
+              <span>الملخص (ملاحظات اليوم)</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  showTodaySummaryOnly
+                    ? "bg-white/25 text-white"
+                    : "bg-indigo-200/80 text-indigo-900"
+                }`}
+              >
+                {TODAY_ADDED_OBSERVATION_IDS.length}
+              </span>
+            </button>
+
             {categories.map((cat) => {
               const count =
                 cat === "الكل"

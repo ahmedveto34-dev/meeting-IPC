@@ -57,6 +57,8 @@ import {
   CenterSettings,
   InfectionControlPolicy
 } from "../types";
+import { TodayAddedSummaryView } from "./TodayAddedSummaryView";
+import { TODAY_ADDED_OBSERVATION_IDS } from "../data/todayObservationsSummary";
 
 interface ObservationsBankViewProps {
   topics: MeetingTopic[];
@@ -83,8 +85,8 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
   onOpenNewRound,
   onOpenNewMeeting,
 }) => {
-  // Main view mode: "policies" | "observations" | "topics" | "all"
-  const [activeBankTab, setActiveBankTab] = useState<"policies" | "observations" | "topics" | "all">("policies");
+  // Main view mode: "summary" | "policies" | "observations" | "topics" | "all"
+  const [activeBankTab, setActiveBankTab] = useState<"summary" | "policies" | "observations" | "topics" | "all">("summary");
   
   // Search & Filters
   const [search, setSearch] = useState<string>("");
@@ -563,6 +565,23 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
         <div className="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg border border-slate-200/80">
             <button
+              onClick={() => setActiveBankTab("summary")}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-all ${
+                activeBankTab === "summary"
+                  ? "bg-indigo-600 text-white shadow-xs font-bold"
+                  : "text-indigo-950 hover:text-indigo-700 hover:bg-indigo-50"
+              }`}
+            >
+              <Sparkles className={`w-4 h-4 ${activeBankTab === "summary" ? "text-indigo-200" : "text-indigo-600"}`} />
+              <span>الملخص (الملاحظات المضافة اليوم)</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-2xs font-bold ${
+                activeBankTab === "summary" ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-800"
+              }`}>
+                {TODAY_ADDED_OBSERVATION_IDS.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveBankTab("policies")}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-all ${
                 activeBankTab === "policies"
@@ -622,6 +641,10 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
 
           {/* Quick Stats Pill */}
           <div className="flex items-center gap-3 text-xs text-slate-600">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-50 border border-indigo-200 text-indigo-800 font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{TODAY_ADDED_OBSERVATION_IDS.length} ملاحظة بالملخص</span>
+            </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-50 border border-slate-200">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>23 سياسة قومية معتمدة</span>
@@ -826,6 +849,28 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
+      {/* TAB 0: SUMMARY VIEW (عنصر الملخص - الملاحظات المضافة اليوم)                */}
+      {/* ========================================================================= */}
+      {activeBankTab === "summary" && (
+        <TodayAddedSummaryView
+          onAddObservationToRound={onAddObservationToRound}
+          onAddObservationToMeeting={onAddObservationToMeeting}
+          onOpenActionModal={handleOpenActionForObs}
+          onBatchAction={(items) => {
+            setActionItem({
+              type: "batch_obs",
+              obsItems: items,
+              title: `إدراج دفعة من ملخص الملاحظات (${items.length} ملاحظة)`,
+              description: `سيتم نسخ وإدراج كافة الملاحظات الـ (${items.length}) المحددة من الملخص مباشرة للتقرير المطلوب مع توصياتها المعتمدة.`,
+            });
+          }}
+          rounds={rounds}
+          meetings={meetings}
+          centerSettings={centerSettings}
+        />
+      )}
+
+      {/* ========================================================================= */}
       {/* TAB 1: POLICIES VIEW (تقسيم الملاحظات حسب سياسات الدليل القومي 2020)       */}
       {/* ========================================================================= */}
       {activeBankTab === "policies" && (
@@ -1012,7 +1057,7 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
                                     className={`bg-white rounded-lg border p-4 transition-all space-y-3 relative ${
                                       isSelected
                                         ? "border-blue-400 bg-blue-50/30 ring-1 ring-blue-300"
-                                        : "border-slate-200 hover:border-slate-300"
+                                        : "border-slate-200 hover:border-blue-300 hover:shadow-xs"
                                     }`}
                                   >
                                     {/* Observation Top Bar */}
@@ -1199,21 +1244,39 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Observation Text */}
-                      <div className="bg-red-50/40 p-3 rounded-lg border border-red-100 text-xs sm:text-sm text-slate-800 leading-relaxed">
-                        <p className="font-bold text-red-800 mb-1 flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                          <span>الملاحظة السلبية / المخالفة:</span>
-                        </p>
+                      {/* Observation Text - Clickable to insert into round form */}
+                      <div
+                        onClick={() => handleOpenActionForObs(obs)}
+                        className="bg-red-50/40 hover:bg-red-50/80 p-3 rounded-lg border border-red-100 text-xs sm:text-sm text-slate-800 leading-relaxed cursor-pointer transition-colors group"
+                        title="انقر لفتح نافذة إدراج هذه الملاحظة في نموذج المرور الميداني"
+                      >
+                        <div className="flex items-center justify-between gap-1 font-bold text-red-800 mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                            <span>الملاحظة السلبية / المخالفة:</span>
+                          </span>
+                          <span className="text-3xs font-normal text-red-600 bg-white/80 px-1.5 py-0.5 rounded border border-red-200/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                            انقر للإدراج بنموذج المرور 📋
+                          </span>
+                        </div>
                         <p>{obs.observation}</p>
                       </div>
 
-                      {/* Recommendation */}
-                      <div className="bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 text-xs sm:text-sm text-slate-800 leading-relaxed">
-                        <p className="font-bold text-emerald-800 mb-1 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>الإجراء التصحيحي والتوصية:</span>
-                        </p>
+                      {/* Recommendation - Clickable to insert into round form */}
+                      <div
+                        onClick={() => handleOpenActionForObs(obs)}
+                        className="bg-emerald-50/40 hover:bg-emerald-50/80 p-3 rounded-lg border border-emerald-100 text-xs sm:text-sm text-slate-800 leading-relaxed cursor-pointer transition-colors group"
+                        title="انقر لفتح نافذة إدراج هذه الملاحظة في نموذج المرور الميداني"
+                      >
+                        <div className="flex items-center justify-between gap-1 font-bold text-emerald-800 mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>الإجراء التصحيحي والتوصية:</span>
+                          </span>
+                          <span className="text-3xs font-normal text-emerald-700 bg-white/80 px-1.5 py-0.5 rounded border border-emerald-200/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                            انقر للإدراج بنموذج المرور 📋
+                          </span>
+                        </div>
                         <p>{obs.recommendation}</p>
                       </div>
 
@@ -1445,20 +1508,25 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* DESTINATION SELECTION MODAL (نافذة التوجيه الذكية)                          */}
+      {/* DESTINATION SELECTION MODAL (نافذة إدراج الملاحظات في نموذج المرور والتقارير)  */}
       {/* ========================================================================= */}
       {actionItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-scaleUp">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+            <div className="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <Send className="w-5 h-5 text-blue-400" />
-                <h3 className="text-base font-bold">تحديد وجهة الإدراج</h3>
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+                  <ClipboardCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">إدراج في نموذج المرور / الاجتماع</h3>
+                  <p className="text-2xs text-indigo-200">اختر وجهة إدراج الملاحظة المحددة</p>
+                </div>
               </div>
               <button
                 onClick={() => setActionItem(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1466,58 +1534,60 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
 
             {/* Modal Body */}
             <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-2xs font-bold text-blue-700 uppercase tracking-wider">
-                  العنصر المختار:
-                </span>
+              <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 space-y-1">
+                <div className="flex items-center gap-1.5 text-2xs font-bold text-indigo-700">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>الملاحظة / العنصر المحدد للإدراج:</span>
+                </div>
                 <h4 className="text-sm font-bold text-slate-900 leading-snug">
                   {actionItem.title}
                 </h4>
-                <p className="text-xs text-slate-600 line-clamp-2">
+                <p className="text-xs text-slate-600 line-clamp-3">
                   {actionItem.description}
                 </p>
               </div>
 
-              {/* Option 1: Round Report */}
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2">
+              {/* Option 1: Round Report (PRIMARY FOCUS) */}
+              <div className="space-y-2.5 bg-blue-50/40 p-4 rounded-xl border border-blue-100">
+                <h4 className="text-xs font-bold text-blue-900 flex items-center gap-2">
                   <ClipboardCheck className="w-4 h-4 text-blue-600" />
-                  <span>1. إدراج في تقرير مرور ميداني:</span>
+                  <span>1. نموذج المرور الميداني (تقرير المرور):</span>
                 </h4>
 
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 gap-2.5">
                   <button
                     onClick={() => handleExecuteAction("new_round")}
-                    className="w-full text-right p-3 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100 hover:border-blue-300 transition-all flex items-center justify-between group"
+                    className="w-full text-right p-3.5 rounded-xl border-2 border-blue-500 bg-white hover:bg-blue-50 hover:border-blue-600 transition-all flex items-center justify-between group shadow-xs cursor-pointer active:scale-98"
                   >
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold text-blue-950 group-hover:text-blue-900">
-                        إنشاء تقرير مرور ميداني جديد
+                    <div className="space-y-1">
+                      <div className="text-xs sm:text-sm font-bold text-blue-950 group-hover:text-blue-900 flex items-center gap-1.5">
+                        <PlusCircle className="w-4 h-4 text-blue-600" />
+                        <span>إنشاء وتعبئة نموذج مرور ميداني جديد</span>
                       </div>
-                      <div className="text-2xs text-blue-700">
-                        توليد تقرير فارغ باليوم والتاريخ الحالي وإضافة هذا البند مباشرة
+                      <div className="text-2xs text-slate-500">
+                        فتح نموذج المرور فوراً مع إدراج الملاحظة والتوصية والمسؤول تلقائياً
                       </div>
                     </div>
-                    <PlusCircle className="w-4 h-4 text-blue-600 shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-blue-600 shrink-0 transform rotate-180 group-hover:-translate-x-1 transition-transform" />
                   </button>
 
                   {rounds.length > 0 && (
-                    <div className="space-y-1 pt-1">
-                      <label className="text-2xs text-slate-500 font-semibold block">
-                        أو إضافتها لتقرير مرور مسجل مسبقاً:
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-2xs text-slate-600 font-bold block">
+                        أو إضافتها لنموذج مرور مسجل مسبقاً:
                       </label>
-                      <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                         {rounds.map((round) => (
                           <button
                             key={round.id}
                             onClick={() => handleExecuteAction("existing_round", round.id)}
-                            className="w-full text-right p-2.5 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition-all flex items-center justify-between text-xs"
+                            className="w-full text-right p-2.5 rounded-lg border border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/50 transition-all flex items-center justify-between text-xs cursor-pointer group"
                           >
-                            <span className="font-semibold text-slate-800 truncate">
+                            <span className="font-semibold text-slate-800 truncate group-hover:text-blue-900">
                               {round.title} ({round.day} - {round.date})
                             </span>
-                            <span className="text-2xs text-slate-500 shrink-0 mr-2">
-                              {round.observations.length} ملاحظة
+                            <span className="text-2xs text-blue-700 font-bold shrink-0 mr-2 bg-blue-100/60 px-2 py-0.5 rounded">
+                              {round.observations.length} ملاحظات حالياً
                             </span>
                           </button>
                         ))}
@@ -1531,17 +1601,17 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
               <div className="space-y-2.5 pt-2 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-800 flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-purple-600" />
-                  <span>2. إدراج في الاجتماع الشهري للجنة:</span>
+                  <span>2. محضر اجتماع لجنة مكافحة العدوى:</span>
                 </h4>
 
                 <div className="grid grid-cols-1 gap-2">
                   <button
                     onClick={() => handleExecuteAction("new_meeting")}
-                    className="w-full text-right p-3 rounded-xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100 hover:border-purple-300 transition-all flex items-center justify-between group"
+                    className="w-full text-right p-3 rounded-xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100 hover:border-purple-300 transition-all flex items-center justify-between group cursor-pointer"
                   >
                     <div className="space-y-0.5">
                       <div className="text-xs font-bold text-purple-950 group-hover:text-purple-900">
-                        إنشاء اجتماع شهري جديد
+                        إنشاء محضر اجتماع شهري جديد
                       </div>
                       <div className="text-2xs text-purple-700">
                         تضمين البند في جدول الأعمال وصياغة قرار تنفيذي وتوصية تلقائية
@@ -1560,7 +1630,7 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
                           <button
                             key={meeting.id}
                             onClick={() => handleExecuteAction("existing_meeting", meeting.id)}
-                            className="w-full text-right p-2.5 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-slate-50 transition-all flex items-center justify-between text-xs"
+                            className="w-full text-right p-2.5 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-slate-50 transition-all flex items-center justify-between text-xs cursor-pointer"
                           >
                             <span className="font-semibold text-slate-800 truncate">
                               الاجتماع رقم ({meeting.meetingNumber}) - {meeting.date}
