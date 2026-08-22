@@ -13,6 +13,8 @@ import {
   Upload,
   LogOut,
   Lock,
+  LayoutDashboard,
+  Home,
 } from "lucide-react";
 import { CenterSettings } from "../types";
 
@@ -139,6 +141,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="bg-slate-50 border-t border-slate-200 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto py-2 gap-2">
           <nav className="flex items-center gap-1 sm:gap-1.5">
+            <button
+              onClick={() => setCurrentTab("portal")}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                currentTab === "portal"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>الرئيسية / بوابة البدء</span>
+            </button>
+
             <button
               onClick={() => setCurrentTab("meetings")}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${

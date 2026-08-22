@@ -58,7 +58,10 @@ import {
   InfectionControlPolicy
 } from "../types";
 import { TodayAddedSummaryView } from "./TodayAddedSummaryView";
-import { TODAY_ADDED_OBSERVATION_IDS } from "../data/todayObservationsSummary";
+import {
+  TODAY_ADDED_OBSERVATION_IDS,
+  sortWithTodaySummaryFirst,
+} from "../data/todayObservationsSummary";
 
 interface ObservationsBankViewProps {
   topics: MeetingTopic[];
@@ -208,9 +211,9 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
     });
   }, [selectedPolicyDomain, search, observationsByPolicy]);
 
-  // Filtered Observations
+  // Filtered Observations (prioritizing the 35 summary observations first)
   const filteredObservations = useMemo(() => {
-    return allObservations.filter((item) => {
+    const list = allObservations.filter((item) => {
       const matchPolicy = selectedPolicyId === "all" || item.policyId === selectedPolicyId;
       const matchCat = selectedCategory === "الكل" || item.category === selectedCategory;
       const matchSeverity = selectedSeverity === "all" || item.severity === selectedSeverity;
@@ -226,6 +229,8 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
         (item.standardRef && item.standardRef.toLowerCase().includes(q));
       return matchPolicy && matchCat && matchSeverity && matchSearch;
     });
+
+    return sortWithTodaySummaryFirst(list);
   }, [allObservations, selectedPolicyId, selectedCategory, selectedSeverity, search]);
 
   // Filtered Topics

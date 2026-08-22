@@ -27,12 +27,18 @@ import {
   STANDARD_ROUND_DEPARTMENTS,
 } from "../types";
 import { STANDARD_OBSERVATIONS_LIBRARY, OBSERVATION_CATEGORIES } from "../data/standardObservations";
+import {
+  TODAY_ADDED_OBSERVATION_IDS,
+  isTodaySummaryObservation,
+  sortWithTodaySummaryFirst,
+} from "../data/todayObservationsSummary";
 import { findSmartCorrectiveAction, fetchAiCorrectiveAction } from "../utils/correctiveActionEngine";
 import {
   getAllCombinedObservations,
   autoPersistObservationsFromRound,
   CUSTOM_OBSERVATIONS_EVENT,
 } from "../utils/customObservationsManager";
+import { RoundObservationPickerModal } from "./RoundObservationPickerModal";
 
 interface RoundFormProps {
   initialRound?: RoundReport | null;
@@ -89,6 +95,7 @@ export const RoundForm: React.FC<RoundFormProps> = ({
 
   // Categorized Observations Multi-Select State (default closed to edit report directly)
   const [showObservationBank, setShowObservationBank] = useState<boolean>(false);
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -132,6 +139,7 @@ export const RoundForm: React.FC<RoundFormProps> = ({
   const categories = useMemo(() => {
     const cats = new Set<string>();
     cats.add("الكل");
+    cats.add("⭐ الملخص (اليوم)");
     // Place standard round departments first
     STANDARD_ROUND_DEPARTMENTS.forEach((d) => cats.add(d));
     allLibraryItems.forEach((i) => cats.add(i.category));
@@ -140,6 +148,9 @@ export const RoundForm: React.FC<RoundFormProps> = ({
 
   const matchItemToDepartment = (item: StandardObservationItem, dept: string) => {
     if (dept === "الكل") return true;
+    if (dept === "⭐ الملخص (اليوم)") {
+      return TODAY_ADDED_OBSERVATION_IDS.includes(item.id);
+    }
     const text = `${item.category} ${item.location} ${item.observation} ${item.recommendation}`.toLowerCase();
     if (dept === "عيادة") {
       return text.includes("عياد") || text.includes("كشف") || text.includes("خارجي");
@@ -159,12 +170,14 @@ export const RoundForm: React.FC<RoundFormProps> = ({
     return item.category === dept || item.location.includes(dept);
   };
 
-  // Filtered observations for the multi-select bank
+  // Filtered observations for the multi-select bank (35 summary items sorted first)
   const filteredBankItems = useMemo(() => {
-    return allLibraryItems.filter((item) => {
+    const list = allLibraryItems.filter((item) => {
       let matchCat = false;
       if (selectedCategory === "الكل") {
         matchCat = true;
+      } else if (selectedCategory === "⭐ الملخص (اليوم)") {
+        matchCat = TODAY_ADDED_OBSERVATION_IDS.includes(item.id);
       } else if (STANDARD_ROUND_DEPARTMENTS.includes(selectedCategory as any)) {
         matchCat = matchItemToDepartment(item, selectedCategory);
       } else {
@@ -182,6 +195,8 @@ export const RoundForm: React.FC<RoundFormProps> = ({
         (item.standardRef && item.standardRef.toLowerCase().includes(q));
       return matchCat && matchSev && matchSearch;
     });
+
+    return sortWithTodaySummaryFirst(list);
   }, [allLibraryItems, selectedCategory, severityFilter, searchQuery]);
 
   // Group items by category for structured layout
@@ -251,6 +266,51 @@ export const RoundForm: React.FC<RoundFormProps> = ({
     showToast(`✅ تمت إضافة (${count}) ملاحظات مختارة بنجاح إلى جدول التقرير`);
 
     // Smooth scroll down to observations table
+    if (tableRef.current) {
+      tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // 🌟 Insert Single Observation from Picker Modal 🌟
+  const handleSelectObservationFromPicker = (item: StandardObservationItem) => {
+    const newRow: RoundObservation = {
+      id: `ro-picker-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      location: item.location || item.category || department || "عام",
+      observation: item.observation,
+      recommendation: item.recommendation,
+      responsible: item.responsible || "مشرف التمريض / مسؤول مكافحة العدوى",
+      status: "in_progress",
+      dueDate: item.duration || "فوري",
+    };
+
+    setObservations((prev) => {
+      const isSingleEmpty = prev.length === 1 && !prev[0].observation.trim();
+      return isSingleEmpty ? [newRow] : [...prev, newRow];
+    });
+    showToast(`✅ تمت إضافة ملاحظة (${item.location}) إلى التقرير`);
+  };
+
+  // 🌟 Insert Multiple Observations from Picker Modal 🌟
+  const handleSelectMultipleObservationsFromPicker = (items: StandardObservationItem[]) => {
+    if (items.length === 0) return;
+
+    const newRows: RoundObservation[] = items.map((item, idx) => ({
+      id: `ro-picker-bulk-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+      location: item.location || item.category || department || "عام",
+      observation: item.observation,
+      recommendation: item.recommendation,
+      responsible: item.responsible || "مشرف القسم / مسؤول مكافحة العدوى",
+      status: "in_progress",
+      dueDate: item.duration || "فوري",
+    }));
+
+    setObservations((prev) => {
+      const isSingleEmpty = prev.length === 1 && !prev[0].observation.trim();
+      return isSingleEmpty ? newRows : [...prev, ...newRows];
+    });
+
+    showToast(`✅ تمت إضافة (${items.length}) ملاحظات مختارة بنجاح`);
+
     if (tableRef.current) {
       tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -440,12 +500,15 @@ export const RoundForm: React.FC<RoundFormProps> = ({
     onSave(reportToSave);
   };
 
-  // Helper to filter suggestions for a specific row based on user input text & row location
+  // Helper to filter suggestions for a specific row based on user input text & row location (35 summary items prioritized first)
   const getSuggestionsForRow = (rowObs: RoundObservation) => {
     const query = (rowObs.observation || "").trim().toLowerCase();
     const loc = (rowObs.location || "").trim().toLowerCase();
 
-    return allLibraryItems.filter((item) => {
+    const filtered = allLibraryItems.filter((item) => {
+      if (dropdownCategoryFilter === "⭐ ملخص اليوم (35)") {
+        return TODAY_ADDED_OBSERVATION_IDS.includes(item.id);
+      }
       if (dropdownCategoryFilter !== "الكل" && item.category !== dropdownCategoryFilter) {
         return false;
       }
@@ -470,6 +533,9 @@ export const RoundForm: React.FC<RoundFormProps> = ({
 
       return true;
     });
+
+    // 🌟 The 35 summary observations are sorted to the VERY TOP of the suggestions list 🌟
+    return sortWithTodaySummaryFirst(filtered, loc);
   };
 
   return (
@@ -507,18 +573,28 @@ export const RoundForm: React.FC<RoundFormProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Quick Bank Toggle Button */}
+          {/* Main Add Observation from Bank & Summary Button */}
+          <button
+            type="button"
+            onClick={() => setIsPickerModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-xs cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>+ إضافة ملاحظة (من البنك والملخص)</span>
+          </button>
+
+          {/* Quick Inline Bank Toggle Button */}
           <button
             type="button"
             onClick={() => setShowObservationBank(!showObservationBank)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer ${
               showObservationBank
                 ? "bg-blue-700 text-white shadow-blue-500/20"
                 : "text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200"
             }`}
           >
             <ListChecks className="w-4 h-4" />
-            <span>{showObservationBank ? "إخفاء بنك الملاحظات" : "+ فتح بنك الملاحظات المعتمدة"}</span>
+            <span>{showObservationBank ? "إخفاء بنك الملاحظات" : "تصفح بنك الأقسام بالصفحة"}</span>
             {selectedItemIds.length > 0 && (
               <span className="bg-amber-400 text-slate-900 px-1.5 py-0.2 rounded-full font-black text-[10px]">
                 {selectedItemIds.length}
@@ -715,50 +791,70 @@ export const RoundForm: React.FC<RoundFormProps> = ({
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
+              onClick={() => setIsPickerModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-xs cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>+ إضافة ملاحظة جديدة (من البنك والملخص)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => {
-                setShowObservationBank(true);
-                window.scrollTo({ top: 120, behavior: "smooth" });
+                setShowObservationBank(!showObservationBank);
+                if (!showObservationBank) {
+                  window.scrollTo({ top: 120, behavior: "smooth" });
+                }
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
             >
               <ListChecks className="w-4 h-4 text-blue-600" />
-              <span>+ اختيار المزيد من بنك الأقسام</span>
+              <span>{showObservationBank ? "إخفاء بنك الأقسام" : "تصفح بنك الأقسام"}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleAddObservation()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-2xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>إضافة سطر فارغ</span>
+              <span>+ سطر فارغ</span>
             </button>
           </div>
         </div>
 
         {observations.length === 0 ? (
           <div className="text-center py-10 border-2 border-dashed border-blue-200 rounded-2xl bg-blue-50/30 p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto">
-              <Lightbulb className="w-6 h-6 text-amber-500 fill-amber-400" />
+            <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto">
+              <Sparkles className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-800">لا توجد ملاحظات مسجلة في جدول التقرير حتى الآن</p>
               <p className="text-xs text-slate-500 mt-1">
-                حدد الملاحظات المطلوبة من قائمة الأقسام بالأعلى واضغط (إضافة للتقرير)، أو أضف سطراً يدوياً
+                اضغط على زر (إضافة ملاحظة جديدة) للاختيار من ملخص اليوم أو بنك الأقسام المعتمد، أو أضف سطراً يدوياً
               </p>
             </div>
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
               <button
                 type="button"
+                onClick={() => setIsPickerModalOpen(true)}
+                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>فتح نافذة الملاحظات والملخص</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   setShowObservationBank(true);
                   window.scrollTo({ top: 100, behavior: "smooth" });
                 }}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 flex items-center gap-1.5 cursor-pointer"
               >
                 <ListChecks className="w-4 h-4" />
-                <span>فتح بنك الملاحظات واختيار بنود</span>
+                <span>تصفح بنك الأقسام بالصفحة</span>
               </button>
 
               <button
@@ -962,63 +1058,120 @@ export const RoundForm: React.FC<RoundFormProps> = ({
                         <div className="absolute top-full right-0 left-0 mt-1 z-40 bg-white rounded-xl shadow-2xl border border-blue-300 p-3 space-y-2.5 animate-in fade-in slide-in-from-top-2 max-w-2xl">
                           
                           {/* Dropdown Header & Category Selector */}
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                              <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
-                              <span>ملاحظات مقترحة مطابقة ({suggestions.length})</span>
+                          <div className="space-y-1.5 border-b border-slate-100 pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <Lightbulb className="w-4 h-4 text-amber-500 fill-amber-400" />
+                                <span>ملاحظات مقترحة مطابقة ({suggestions.length})</span>
+                                <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                  ⭐ الملخص (35) في البداية
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setActiveSuggestionRowId(null)}
+                                className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => setActiveSuggestionRowId(null)}
-                              className="text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            {/* Quick Category Filter Bar */}
+                            <div className="flex items-center gap-1 overflow-x-auto py-0.5 text-[10px] scrollbar-none">
+                              <button
+                                type="button"
+                                onClick={() => setDropdownCategoryFilter("الكل")}
+                                className={`px-2 py-0.5 rounded font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                                  dropdownCategoryFilter === "الكل"
+                                    ? "bg-slate-800 text-white"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                الكل
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDropdownCategoryFilter("⭐ ملخص اليوم (35)")}
+                                className={`px-2 py-0.5 rounded font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                                  dropdownCategoryFilter === "⭐ ملخص اليوم (35)"
+                                    ? "bg-amber-600 text-white"
+                                    : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                                }`}
+                              >
+                                ⭐ ملخص اليوم (35)
+                              </button>
+                              {["عيادة", "فحوصات", "قسم داخلي", "عمليات", "إفاقة"].map((dept) => (
+                                <button
+                                  key={dept}
+                                  type="button"
+                                  onClick={() => setDropdownCategoryFilter(dept)}
+                                  className={`px-2 py-0.5 rounded font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                                    dropdownCategoryFilter === dept
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                  }`}
+                                >
+                                  {dept}
+                                </button>
+                              ))}
+                            </div>
                           </div>
 
                           {/* Suggestions List */}
-                          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-0.5 divide-y divide-slate-100">
+                          <div className="max-h-64 overflow-y-auto space-y-1.5 pr-0.5 divide-y divide-slate-100">
                             {suggestions.length === 0 ? (
                               <div className="py-4 text-center text-xs text-slate-500">
                                 لا توجد اقتراحات مطابقة تماماً لنص البحث
                               </div>
                             ) : (
-                              suggestions.slice(0, 10).map((item) => (
-                                <div
-                                  key={item.id}
-                                  onClick={() => handleSelectSuggestionForRow(obs.id, item)}
-                                  className="pt-2 first:pt-0 p-2 rounded-lg hover:bg-blue-50/80 cursor-pointer transition-colors text-right group border border-transparent hover:border-blue-200"
-                                >
-                                  <div className="flex items-center justify-between gap-2 mb-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      {item.isCustom && (
-                                        <span className="text-[9px] font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.2 rounded border border-amber-300 flex items-center gap-0.5">
-                                          ⭐ محفوظة من سجلاتك
+                              suggestions.slice(0, 20).map((item) => {
+                                const isSummary = isTodaySummaryObservation(item.id);
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => handleSelectSuggestionForRow(obs.id, item)}
+                                    className={`pt-2 first:pt-0 p-2.5 rounded-lg cursor-pointer transition-colors text-right group border ${
+                                      isSummary
+                                        ? "bg-amber-50/40 hover:bg-amber-50 border-amber-200/80 hover:border-amber-400"
+                                        : "hover:bg-blue-50/80 border-transparent hover:border-blue-200"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        {isSummary && (
+                                          <span className="text-[9px] font-bold text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded border border-amber-400 flex items-center gap-1 shadow-2xs">
+                                            ⭐ من ملخص اليوم (35)
+                                          </span>
+                                        )}
+                                        {item.isCustom && (
+                                          <span className="text-[9px] font-bold text-purple-800 bg-purple-100/90 px-1.5 py-0.2 rounded border border-purple-300 flex items-center gap-0.5">
+                                            سجل محفوظ
+                                          </span>
+                                        )}
+                                        <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                                          {item.location}
                                         </span>
-                                      )}
-                                      <span className="text-[10px] font-bold text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-                                        {item.location}
-                                      </span>
-                                      <span className="text-[10px] text-slate-500 font-medium">
-                                        ({item.category})
+                                        <span className="text-[10px] text-slate-500 font-medium">
+                                          ({item.category})
+                                        </span>
+                                      </div>
+
+                                      <span className="text-[11px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                                        <Check className="w-3 h-3" />
+                                        <span>اختيار</span>
                                       </span>
                                     </div>
 
-                                    <span className="text-[11px] font-bold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-                                      <Check className="w-3 h-3" />
-                                      <span>اختيار</span>
-                                    </span>
+                                    <p className={`text-xs font-bold leading-snug ${isSummary ? "text-amber-950" : "text-slate-900 group-hover:text-blue-950"}`}>
+                                      {item.observation}
+                                    </p>
+                                    <p className="text-[11px] text-slate-600 mt-1 line-clamp-1">
+                                      <strong className="text-blue-700">التوصية:</strong> {item.recommendation}
+                                    </p>
                                   </div>
-
-                                  <p className="text-xs font-bold text-slate-900 group-hover:text-blue-950 leading-snug">
-                                    {item.observation}
-                                  </p>
-                                  <p className="text-[11px] text-slate-600 mt-1 line-clamp-1">
-                                    <strong className="text-blue-700">التوصية:</strong> {item.recommendation}
-                                  </p>
-                                </div>
-                              ))
+                                );
+                              })
                             )}
                           </div>
                         </div>
@@ -1390,34 +1543,55 @@ export const RoundForm: React.FC<RoundFormProps> = ({
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => handleAddObservation()}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>إضافة بند ملاحظة آخر</span>
-        </button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsPickerModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-xs cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>+ إضافة ملاحظة جديدة (من البنك والملخص)</span>
+          </button>
 
-        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleAddObservation()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ إضافة سطر فارغ</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             إلغاء
           </button>
 
           <button
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>حفظ تقرير المرور ومعاينته</span>
           </button>
         </div>
       </div>
+
+      {/* 🌟 Rich Observations & Today Summary Picker Modal 🌟 */}
+      <RoundObservationPickerModal
+        isOpen={isPickerModalOpen}
+        onClose={() => setIsPickerModalOpen(false)}
+        onSelectObservation={handleSelectObservationFromPicker}
+        onSelectMultipleObservations={handleSelectMultipleObservationsFromPicker}
+        onAddEmptyRow={() => handleAddObservation()}
+        currentDepartment={department}
+      />
 
     </form>
   );

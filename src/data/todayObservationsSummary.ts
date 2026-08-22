@@ -12,8 +12,45 @@ export const TODAY_ADDED_OBSERVATION_IDS: string[] = [
   "obs-236", "obs-237", "obs-238", "obs-239", "obs-240"
 ];
 
+// Helper to check if an observation ID belongs to the 35 today's summary
+export const isTodaySummaryObservation = (id: string): boolean => {
+  return TODAY_ADDED_OBSERVATION_IDS.includes(id);
+};
+
 // Helper to retrieve today's 35 added observations
 export const getTodayAddedObservations = (): StandardObservationItem[] => {
   const idSet = new Set(TODAY_ADDED_OBSERVATION_IDS);
   return STANDARD_OBSERVATIONS_LIBRARY.filter((item) => idSet.has(item.id));
+};
+
+/**
+ * Sorts any list of observations so that the 35 summary observations appear first at the top
+ */
+export const sortWithTodaySummaryFirst = <T extends { id: string; location?: string; category?: string }>(
+  items: T[],
+  preferredLocation?: string
+): T[] => {
+  return [...items].sort((a, b) => {
+    const aIsSummary = TODAY_ADDED_OBSERVATION_IDS.includes(a.id);
+    const bIsSummary = TODAY_ADDED_OBSERVATION_IDS.includes(b.id);
+    if (aIsSummary && !bIsSummary) return -1;
+    if (!aIsSummary && bIsSummary) return 1;
+
+    // If both are or aren't summary, prioritize matching preferredLocation if provided
+    if (preferredLocation) {
+      const pref = preferredLocation.toLowerCase();
+      const aLoc = (a.location || "").toLowerCase();
+      const bLoc = (b.location || "").toLowerCase();
+      const aCat = (a.category || "").toLowerCase();
+      const bCat = (b.category || "").toLowerCase();
+
+      const aLocMatch = aLoc.includes(pref) || aCat.includes(pref) || pref.includes(aLoc);
+      const bLocMatch = bLoc.includes(pref) || bCat.includes(pref) || pref.includes(bLoc);
+
+      if (aLocMatch && !bLocMatch) return -1;
+      if (!aLocMatch && bLocMatch) return 1;
+    }
+
+    return 0;
+  });
 };

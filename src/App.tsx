@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "./components/Navbar";
 import { AuthScreen } from "./components/AuthScreen";
+import { PortalLandingView } from "./components/PortalLandingView";
 import { MeetingsList } from "./components/MeetingsList";
 import { MeetingView } from "./components/MeetingView";
 import { MeetingForm } from "./components/MeetingForm";
@@ -151,7 +152,7 @@ export default function App() {
   });
 
   // Navigation State
-  const [currentTab, setCurrentTab] = useState<string>("meetings");
+  const [currentTab, setCurrentTab] = useState<string>("portal");
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
 
@@ -853,6 +854,25 @@ export default function App() {
       {/* Main Page Container */}
       <main className="grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         
+        {/* TAB 0: Portal Landing Hub (بوابة البدء السريع بعد تسجيل الدخول) */}
+        {currentTab === "portal" && (
+          <PortalLandingView
+            centerSettings={centerSettings}
+            meetings={meetings}
+            rounds={rounds}
+            onStartNewRound={handleNewRound}
+            onStartNewMeeting={handleNewMeeting}
+            onViewMeetingsList={() => setCurrentTab("meetings")}
+            onViewRoundsList={() => setCurrentTab("rounds")}
+            onViewObservationsBank={() => setCurrentTab("observations-bank")}
+            onViewMonthlyPlan={() => setCurrentTab("monthly-plan")}
+            onViewTopicsLibrary={() => setCurrentTab("topics-library")}
+            onOpenAiHelper={() => setIsAiModalOpen(true)}
+            onViewMeeting={handleViewMeeting}
+            onViewRound={handleViewRound}
+          />
+        )}
+
         {/* TAB 1: Meetings List */}
         {currentTab === "meetings" && (
           <MeetingsList

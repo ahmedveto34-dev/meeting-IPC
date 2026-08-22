@@ -30,8 +30,10 @@ import { CenterSettings, Meeting, MeetingDecision, Member, PerformanceIndicator,
 import { MONTHLY_TEMPLATES as DEFAULT_TEMPLATES_FALLBACK } from "../data/monthlyTemplates";
 import { STANDARD_OBSERVATIONS_LIBRARY } from "../data/standardObservations";
 import { TopicsPickerModal } from "./TopicsPickerModal";
+import { MeetingItemPickerModal } from "./MeetingItemPickerModal";
 import { findSmartCorrectiveAction, fetchAiCorrectiveAction } from "../utils/correctiveActionEngine";
 import { autoPersistDecisionsFromMeeting } from "../utils/customObservationsManager";
+import { StandardObservationItem } from "../types";
 
 interface MeetingFormProps {
   initialMeeting?: Meeting | null;
@@ -80,6 +82,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   );
   const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const [isTopicsPickerOpen, setIsTopicsPickerOpen] = useState<boolean>(false);
+  const [isItemPickerOpen, setIsItemPickerOpen] = useState<boolean>(false);
   const [importedTopicTitles, setImportedTopicTitles] = useState<string[]>([]);
 
   // Attendees
@@ -444,6 +447,82 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   };
 
   // Decision manipulation
+  const handleSelectObservationAsDecision = (item: StandardObservationItem, isCarriedOver: boolean = false) => {
+    const newDec: MeetingDecision = {
+      id: `dec-obs-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      topic: item.location ? `[${item.location}] - ${item.observation}` : item.observation,
+      decision: item.recommendation,
+      responsible: item.responsible || "مشرف التمريض / مسؤول مكافحة العدوى",
+      duration: item.duration || "3 أيام",
+      monitoringMethod: "المرور الميداني",
+      status: "in_progress",
+      isCarriedOver: isCarriedOver,
+      sourceMeetingNumber: isCarriedOver ? "السابق" : undefined,
+    };
+
+    setDecisions((prev) => {
+      const isSingleEmpty = prev.length === 1 && !prev[0].topic.trim() && !prev[0].decision.trim();
+      if (isCarriedOver) {
+        const lastCarriedIdx = prev.reduce((acc, d, idx) => (d.isCarriedOver ? idx : acc), -1);
+        const copy = isSingleEmpty ? [] : [...prev];
+        copy.splice(lastCarriedIdx + 1, 0, newDec);
+        return copy;
+      }
+      return isSingleEmpty ? [newDec] : [...prev, newDec];
+    });
+
+    // Also add to Agenda if not already included
+    const shortTopic = item.location ? `متابعة ملاحظات ${item.location}` : item.observation;
+    setAgenda((prev) => {
+      const exists = prev.some((a) => a.includes(item.location) || a.includes(item.observation.substring(0, 15)));
+      return exists ? prev : [...prev, shortTopic];
+    });
+  };
+
+  const handleSelectMultipleObservationsAsDecisions = (items: StandardObservationItem[], isCarriedOver: boolean = false) => {
+    if (items.length === 0) return;
+    const newDecs: MeetingDecision[] = items.map((item, idx) => ({
+      id: `dec-obs-bulk-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+      topic: item.location ? `[${item.location}] - ${item.observation}` : item.observation,
+      decision: item.recommendation,
+      responsible: item.responsible || "مشرف التمريض / مسؤول مكافحة العدوى",
+      duration: item.duration || "3 أيام",
+      monitoringMethod: "المرور الميداني",
+      status: "in_progress",
+      isCarriedOver: isCarriedOver,
+      sourceMeetingNumber: isCarriedOver ? "السابق" : undefined,
+    }));
+
+    setDecisions((prev) => {
+      const isSingleEmpty = prev.length === 1 && !prev[0].topic.trim() && !prev[0].decision.trim();
+      const base = isSingleEmpty ? [] : prev;
+      if (isCarriedOver) {
+        const existingCarried = base.filter((d) => d.isCarriedOver);
+        const existingCurrent = base.filter((d) => !d.isCarriedOver);
+        return [...existingCarried, ...newDecs, ...existingCurrent];
+      }
+      return [...base, ...newDecs];
+    });
+  };
+
+  const handleAddCustomDecision = (topic: string, decision: string, responsible: string, isCarriedOver: boolean = false) => {
+    const newDec: MeetingDecision = {
+      id: `dec-custom-${Date.now()}`,
+      topic,
+      decision,
+      responsible: responsible || "مشرف التمريض",
+      duration: "3 أيام",
+      monitoringMethod: "المرور الميداني",
+      status: "in_progress",
+      isCarriedOver,
+      sourceMeetingNumber: isCarriedOver ? "السابق" : undefined,
+    };
+    setDecisions((prev) => {
+      const isSingleEmpty = prev.length === 1 && !prev[0].topic.trim() && !prev[0].decision.trim();
+      return isSingleEmpty ? [newDec] : [...prev, newDec];
+    });
+  };
+
   const handleAddDecision = (isCarriedOver: boolean = false) => {
     const newDec: MeetingDecision = {
       id: `dec-${Date.now()}`,
@@ -1348,6 +1427,15 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() => setIsItemPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>+ إضافة موضوع / قرار (من البنك والملاحظات)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleSortCarriedOverFirst}
               title="إعادة فرز وترتيب الجدول ليظهر ما لم ينجز من الاجتماع السابق أولاً ثم موضوعات الحالي"
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 transition-colors shadow-2xs"
@@ -1368,10 +1456,10 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             <button
               type="button"
               onClick={() => handleAddDecision(false)}
-              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 transition-colors shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ موضوع الاجتماع الحالي</span>
+              <span>+ سطر فارغ</span>
             </button>
           </div>
         </div>
@@ -1670,6 +1758,17 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         </button>
       </div>
     </form>
+
+    {/* Decision & Observation Item Picker Modal */}
+    <MeetingItemPickerModal
+      isOpen={isItemPickerOpen}
+      onClose={() => setIsItemPickerOpen(false)}
+      onSelectObservationAsDecision={handleSelectObservationAsDecision}
+      onSelectMultipleObservationsAsDecisions={handleSelectMultipleObservationsAsDecisions}
+      onSelectTopic={(topic) => handleImportTopicsBatch([topic], { mode: "append", importAgenda: true, importKpis: true, importDecisions: true })}
+      onAddCustomDecision={handleAddCustomDecision}
+      availableTopics={availableTopics}
+    />
 
     {/* Massive Topics Library Picker Modal */}
     <TopicsPickerModal
