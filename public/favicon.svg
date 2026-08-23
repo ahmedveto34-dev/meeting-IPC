@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <!-- Background Shield Gradient -->
+    <linearGradient id="shieldGrad" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+    
+    <!-- Cross Gradient -->
+    <linearGradient id="crossGrad" x1="20" y1="18" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#ecfeff" />
+    </linearGradient>
+
+    <!-- Subtle Drop Shadow Filter -->
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.3" />
+    </filter>
+
+    <!-- Glow for Accent -->
+    <linearGradient id="accentGrad" x1="16" y1="8" x2="48" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Rounded Protective Shield -->
+  <path d="M32 4C44 4 54 8.5 56 12C56 30 46 51 32 60C18 51 8 30 8 12C10 8.5 20 4 32 4Z" 
+        fill="url(#shieldGrad)" 
+        filter="url(#subtleShadow)" />
+
+  <!-- Inner Top Rim Highlight -->
+  <path d="M32 6.5C42.5 6.5 51.5 10.3 53.5 13.2C53.2 27 45 45.5 32 56.5C19 45.5 10.8 27 10.5 13.2C12.5 10.3 21.5 6.5 32 6.5Z" 
+        stroke="url(#accentGrad)" 
+        stroke-width="1.5" 
+        fill="none" />
+
+  <!-- Medical Cross / Plus Symbol -->
+  <g filter="url(#subtleShadow)">
+    <!-- Vertical Bar -->
+    <rect x="27" y="19" width="10" height="26" rx="4" fill="url(#crossGrad)" />
+    <!-- Horizontal Bar -->
+    <rect x="19" y="27" width="26" height="10" rx="4" fill="url(#crossGrad)" />
+    
+    <!-- Central IPC Hygiene Sparkle / Target Center -->
+    <circle cx="32" cy="32" r="3.2" fill="#0284c7" />
+    <circle cx="32" cy="32" r="1.5" fill="#ffffff" />
+  </g>
+
+  <!-- Hygiene / Purity Sparkle in Top Right -->
+  <path d="M47 13C47 16 49 18 52 18C49 18 47 20 47 23C47 20 45 18 42 18C45 18 47 16 47 13Z" fill="#38bdf8" />
+  <circle cx="47" cy="18" r="1" fill="#ffffff" />
+</svg>
