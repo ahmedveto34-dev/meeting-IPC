@@ -16,10 +16,12 @@ import { ObservationsBankView } from "./components/ObservationsBankView";
 import { SettingsModal } from "./components/SettingsModal";
 import { AiAssistantModal } from "./components/AiAssistantModal";
 import { CenterTemplatesManagerModal } from "./components/CenterTemplatesManagerModal";
+import { FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision, MonthlyThemeTemplate, AppExportBundle } from "./types";
 import { INITIAL_MEETINGS, INITIAL_ROUNDS, DEFAULT_CENTER_SETTINGS } from "./data/seedData";
 import { MONTHLY_TEMPLATES, DEFAULT_MONTHLY_TEMPLATES, normalizeMonthlyTemplates } from "./data/monthlyTemplates";
 import { DEFAULT_TOPICS } from "./data/defaultTopics";
+import { syncMeetingToGoogleSheets, syncRoundToGoogleSheets } from "./utils/googleSheetsSync";
 
 const STORAGE_KEYS = {
   MEETINGS: "inf_ctrl_meetings_v2",
@@ -169,6 +171,91 @@ export default function App() {
   const [isObsBankOpen, setIsObsBankOpen] = useState(false);
   const [isTemplatesManagerOpen, setIsTemplatesManagerOpen] = useState(false);
 
+  // Auto-Sync to Google Sheets State
+  const [autoSyncState, setAutoSyncState] = useState<{
+    status: "idle" | "syncing" | "success" | "error";
+    title?: string;
+    message?: string;
+  }>({ status: "idle" });
+
+  const triggerMeetingAutoSync = async (meeting: Meeting) => {
+    setAutoSyncState({
+      status: "syncing",
+      title: `مزامنة تلقائية: محضر اجتماع رقم (${meeting.meetingNumber})`,
+      message: "جاري حفظ وترحيل البيانات إلى Google Sheets تلقائياً...",
+    });
+    try {
+      const res = await syncMeetingToGoogleSheets(meeting);
+      if (res.success) {
+        setAutoSyncState({
+          status: "success",
+          title: `تمت المزامنة التلقائية بنجاح ✓`,
+          message: `تم ترحيل محضر الاجتماع رقم (${meeting.meetingNumber}) وقراراته إلى Google Sheets`,
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "success" ? { status: "idle" } : prev));
+        }, 4000);
+      } else {
+        setAutoSyncState({
+          status: "error",
+          title: `حفظ محلي (ملاحظة مزامنة)`,
+          message: res.error || "تم الحفظ محلياً. يرجى التأكد من ضبط متغير SHEET_ID",
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+        }, 5000);
+      }
+    } catch {
+      setAutoSyncState({
+        status: "error",
+        title: `حفظ محلي`,
+        message: "تم حفظ المحضر محلياً في المتصفح",
+      });
+      setTimeout(() => {
+        setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+      }, 4000);
+    }
+  };
+
+  const triggerRoundAutoSync = async (round: RoundReport) => {
+    setAutoSyncState({
+      status: "syncing",
+      title: `مزامنة تلقائية: تقرير المرور (${round.title})`,
+      message: "جاري حفظ وترحيل الملاحظات وخطة العمل إلى Google Sheets تلقائياً...",
+    });
+    try {
+      const res = await syncRoundToGoogleSheets(round);
+      if (res.success) {
+        setAutoSyncState({
+          status: "success",
+          title: `تمت المزامنة التلقائية بنجاح ✓`,
+          message: `تم ترحيل تقرير المرور (${round.title}) وخطة العمل إلى Google Sheets`,
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "success" ? { status: "idle" } : prev));
+        }, 4000);
+      } else {
+        setAutoSyncState({
+          status: "error",
+          title: `حفظ محلي (ملاحظة مزامنة)`,
+          message: res.error || "تم الحفظ محلياً. يرجى التأكد من ضبط متغير SHEET_ID",
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+        }, 5000);
+      }
+    } catch {
+      setAutoSyncState({
+        status: "error",
+        title: `حفظ محلي`,
+        message: "تم حفظ التقرير محلياً في المتصفح",
+      });
+      setTimeout(() => {
+        setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+      }, 4000);
+    }
+  };
+
   // Bundle Import Handler for other centers
   const handleImportBundle = (
     bundle: Partial<AppExportBundle>,
@@ -286,6 +373,9 @@ export default function App() {
     setSelectedMeeting(savedMeeting);
     setEditingMeeting(null);
     setCurrentTab("meeting-view");
+
+    // Trigger background automatic synchronization with Google Sheets
+    triggerMeetingAutoSync(savedMeeting);
   };
 
   const handleDeleteMeeting = (id: string) => {
@@ -370,6 +460,9 @@ export default function App() {
     setSelectedRound(savedRound);
     setEditingRound(null);
     setCurrentTab("round-view");
+
+    // Trigger background automatic synchronization with Google Sheets
+    triggerRoundAutoSync(savedRound);
   };
 
   const handleDeleteRound = (id: string) => {
@@ -439,6 +532,7 @@ export default function App() {
         setRounds(updatedList);
         setSelectedRound(updatedRound);
         setCurrentTab("round-view");
+        triggerRoundAutoSync(updatedRound);
       }
     }
   };
@@ -510,6 +604,7 @@ export default function App() {
         setMeetings(updatedList);
         setSelectedMeeting(updatedMeeting);
         setCurrentTab("meeting-view");
+        triggerMeetingAutoSync(updatedMeeting);
       }
     }
   };
@@ -563,6 +658,7 @@ export default function App() {
         setMeetings(updatedList);
         setSelectedMeeting(updatedMeeting);
         setCurrentTab("meeting-view");
+        triggerMeetingAutoSync(updatedMeeting);
       }
     }
   };
@@ -1085,6 +1181,51 @@ export default function App() {
           }
         }}
       />
+
+      {/* Floating Auto-Sync Notification Toast */}
+      {autoSyncState.status !== "idle" && (
+        <div
+          id="autosync-toast-notification"
+          className={`fixed bottom-5 left-5 z-50 max-w-md w-auto rounded-2xl shadow-xl border p-4 flex items-start gap-3.5 transition-all duration-300 animate-in slide-in-from-bottom-5 print:hidden ${
+            autoSyncState.status === "syncing"
+              ? "bg-slate-900 text-white border-slate-700"
+              : autoSyncState.status === "success"
+              ? "bg-emerald-900 text-white border-emerald-700"
+              : "bg-amber-900 text-white border-amber-700"
+          }`}
+          dir="rtl"
+        >
+          <div className="shrink-0 mt-0.5">
+            {autoSyncState.status === "syncing" && (
+              <Loader2 className="w-5 h-5 animate-spin text-emerald-400" />
+            )}
+            {autoSyncState.status === "success" && (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            )}
+            {autoSyncState.status === "error" && (
+              <AlertCircle className="w-5 h-5 text-amber-400" />
+            )}
+          </div>
+          <div className="grow min-w-0 pr-1 text-right">
+            <div className="flex items-center gap-1.5 font-black text-sm">
+              <FileSpreadsheet className="w-3.5 h-3.5 opacity-80" />
+              <span>{autoSyncState.title || "مزامنة Google Sheets"}</span>
+            </div>
+            {autoSyncState.message && (
+              <p className="text-xs mt-1 text-slate-200 leading-relaxed opacity-90">
+                {autoSyncState.message}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setAutoSyncState({ status: "idle" })}
+            className="shrink-0 text-slate-400 hover:text-white transition-colors cursor-pointer p-1 -mr-1"
+            title="إغلاق الإشعار"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
     </div>
   );
