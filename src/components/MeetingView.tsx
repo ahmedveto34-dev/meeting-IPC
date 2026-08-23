@@ -14,9 +14,12 @@ import {
   ZoomOut,
   Type,
   Trash2,
+  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import { Meeting } from "../types";
 import { exportMeetingToDocx } from "../utils/docxExport";
+import { syncMeetingToGoogleSheets } from "../utils/googleSheetsSync";
 
 interface MeetingViewProps {
   meeting: Meeting;
@@ -34,8 +37,29 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
   onDelete,
 }) => {
   const [downloading, setDownloading] = useState(false);
+  const [syncingSheet, setSyncingSheet] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [fontSizeMode, setFontSizeMode] = useState<"normal" | "large" | "xlarge">("large");
+
+  const handleSyncToSheets = async () => {
+    try {
+      setSyncingSheet(true);
+      setSyncStatus(null);
+      const res = await syncMeetingToGoogleSheets(meeting);
+      if (res.success) {
+        setSyncStatus("تم الحفظ والمزامنة مع Google Sheets بنجاح! ✓");
+      } else {
+        setSyncStatus(`ملاحظة: ${res.error || "يرجى التحقق من VITE_SHEET_ID"}`);
+      }
+      setTimeout(() => setSyncStatus(null), 5000);
+    } catch (err: any) {
+      setSyncStatus("حدث خطأ أثناء المزامنة");
+      setTimeout(() => setSyncStatus(null), 5000);
+    } finally {
+      setSyncingSheet(false);
+    }
+  };
 
   const handleDelete = () => {
     if (window.confirm(`هل أنت متأكد تماماً من حذف محضر الاجتماع رقم (${meeting.meetingNumber}) المنعقد بتاريخ ${meeting.date}؟\nلا يمكن التراجع عن هذا الإجراء.`)) {
@@ -211,6 +235,20 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
           )}
 
           <button
+            onClick={handleSyncToSheets}
+            disabled={syncingSheet}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-2xs cursor-pointer disabled:opacity-60"
+            title="حفظ ومزامنة محضر الاجتماع في Google Sheets مباشرة"
+          >
+            {syncingSheet ? (
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+            ) : (
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            )}
+            <span>{syncingSheet ? "جاري الحفظ..." : "مزامنة Google Sheets"}</span>
+          </button>
+
+          <button
             onClick={handlePrint}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-800 bg-white border-2 border-slate-400 hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
           >
@@ -228,6 +266,21 @@ export const MeetingView: React.FC<MeetingViewProps> = ({
           </button>
         </div>
       </div>
+
+      {syncStatus && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-between shadow-xs print:hidden animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{syncStatus}</span>
+          </div>
+          <button
+            onClick={() => setSyncStatus(null)}
+            className="text-emerald-700 hover:text-emerald-950 font-black cursor-pointer text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Printable Document Container (Styled cleanly, large fonts, strict right alignment) */}
       <div

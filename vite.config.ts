@@ -5,6 +5,10 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    define: {
+      'process.env.SHEET_ID': JSON.stringify(process.env.SHEET_ID || ''),
+      'import.meta.env.SHEET_ID': JSON.stringify(process.env.SHEET_ID || ''),
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
