@@ -19,6 +19,7 @@ import { CenterTemplatesManagerModal } from "./components/CenterTemplatesManager
 import { FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision, MonthlyThemeTemplate, AppExportBundle } from "./types";
 import { INITIAL_MEETINGS, INITIAL_ROUNDS, DEFAULT_CENTER_SETTINGS } from "./data/seedData";
+import { DEFAULT_WEEKLY_BALANCED_ROUNDS, generateBalancedRoundObservations } from "./data/defaultRounds";
 import { MONTHLY_TEMPLATES, DEFAULT_MONTHLY_TEMPLATES, normalizeMonthlyTemplates } from "./data/monthlyTemplates";
 import { DEFAULT_TOPICS } from "./data/defaultTopics";
 import { syncMeetingToGoogleSheets, syncRoundToGoogleSheets } from "./utils/googleSheetsSync";
@@ -139,17 +140,25 @@ export default function App() {
     }
   });
 
-  // Rounds State
+  // Rounds State (4 Default Balanced Weekly Rounds with 4-5 observations each)
   const [rounds, setRounds] = useState<RoundReport[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ROUNDS);
-      const data: RoundReport[] = saved ? JSON.parse(saved) : INITIAL_ROUNDS;
+      let data: RoundReport[] = saved ? JSON.parse(saved) : INITIAL_ROUNDS;
+      if (Array.isArray(data)) {
+        // If empty or only old demo round (which had 10 observations or id "round-demo-1"), upgrade to default 4 balanced weekly rounds
+        if (data.length === 0 || (data.length === 1 && data[0].id === "round-demo-1")) {
+          data = DEFAULT_WEEKLY_BALANCED_ROUNDS;
+        }
+      } else {
+        data = DEFAULT_WEEKLY_BALANCED_ROUNDS;
+      }
       return data.map((r) => ({
         ...r,
         centerName: (!r.centerName || r.centerName.includes("احمد مصطف") || r.centerName.includes("أحمد مصطف")) ? "Waheed IPC" : r.centerName,
       }));
     } catch {
-      return INITIAL_ROUNDS;
+      return DEFAULT_WEEKLY_BALANCED_ROUNDS;
     }
   });
 
@@ -471,6 +480,46 @@ export default function App() {
       setSelectedRound(null);
       setCurrentTab("rounds");
     }
+  };
+
+  const handleRestoreDefaultRounds = () => {
+    if (
+      window.confirm(
+        "هل تريد استعادة تقارير المرور الافتراضية الأسبوعية (4 تقارير متوازنة تحتوي كل منها على 4 إلى 5 ملاحظات موزعة على الأقسام)؟"
+      )
+    ) {
+      setRounds(DEFAULT_WEEKLY_BALANCED_ROUNDS);
+      localStorage.setItem(STORAGE_KEYS.ROUNDS, JSON.stringify(DEFAULT_WEEKLY_BALANCED_ROUNDS));
+      setAutoSyncState({
+        status: "success",
+        title: "تم استعادة تقارير المرور الافتراضية",
+        message: "تم تحديث سجل تقارير المرور بـ 4 تقارير أسبوعية متوازنة عبر الأقسام بنجاح",
+      });
+      setTimeout(() => {
+        setAutoSyncState((prev) => (prev.status === "success" ? { status: "idle" } : prev));
+      }, 3500);
+    }
+  };
+
+  const handleGenerateDefaultRound = (weekNumber: number = 1) => {
+    const targetRound = DEFAULT_WEEKLY_BALANCED_ROUNDS[(weekNumber - 1) % DEFAULT_WEEKLY_BALANCED_ROUNDS.length];
+    const today = new Date();
+    const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const currentDay = dayNames[today.getDay()] || "الأحد";
+    const currentDate = today.toISOString().split("T")[0].replace(/-/g, "/");
+
+    const newRound: RoundReport = {
+      ...targetRound,
+      id: `round-balanced-${Date.now()}`,
+      day: currentDay,
+      date: currentDate,
+      inspector: centerSettings.infectionControlLead || targetRound.inspector,
+      centerName: centerSettings.centerName || targetRound.centerName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    handleSaveRound(newRound);
   };
 
   // Create new Round from Selected Bank Observations
@@ -1038,6 +1087,8 @@ export default function App() {
             onNewRound={handleNewRound}
             onDeleteRound={handleDeleteRound}
             onConvertToMeeting={handleConvertRoundToMeeting}
+            onGenerateDefaultRound={handleGenerateDefaultRound}
+            onRestoreDefaultRounds={handleRestoreDefaultRounds}
           />
         )}
 

@@ -38,6 +38,10 @@ import {
   autoPersistObservationsFromRound,
   CUSTOM_OBSERVATIONS_EVENT,
 } from "../utils/customObservationsManager";
+import {
+  DEFAULT_WEEKLY_BALANCED_ROUNDS,
+  generateBalancedRoundObservations,
+} from "../data/defaultRounds";
 import { RoundObservationPickerModal } from "./RoundObservationPickerModal";
 
 interface RoundFormProps {
@@ -310,6 +314,31 @@ export const RoundForm: React.FC<RoundFormProps> = ({
     });
 
     showToast(`✅ تمت إضافة (${items.length}) ملاحظات مختارة بنجاح`);
+
+    if (tableRef.current) {
+      tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // 🌟 State for Balanced Preset dropdown menu 🌟
+  const [isBalancedMenuOpen, setIsBalancedMenuOpen] = useState(false);
+
+  // 🌟 Load Balanced Preset (4-5 observations with 1-2 per department) 🌟
+  const handleLoadBalancedPreset = (weekNum?: number) => {
+    let presetRows: RoundObservation[] = [];
+    if (weekNum && weekNum >= 1 && weekNum <= 4) {
+      const target = DEFAULT_WEEKLY_BALANCED_ROUNDS[weekNum - 1];
+      presetRows = target.observations.map((obs, idx) => ({
+        ...obs,
+        id: `ro-preset-w${weekNum}-${Date.now()}-${idx}`,
+      }));
+    } else {
+      presetRows = generateBalancedRoundObservations({ count: 5 });
+    }
+
+    setObservations(presetRows);
+    setIsBalancedMenuOpen(false);
+    showToast(`⚡ تم تعبئة التقرير بـ (${presetRows.length}) ملاحظات افتراضية متوازنة عبر كافة الأقسام`);
 
     if (tableRef.current) {
       tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -789,6 +818,90 @@ export const RoundForm: React.FC<RoundFormProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* 🌟 4-5 Balanced Preset Generator Button 🌟 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsBalancedMenuOpen(!isBalancedMenuOpen)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-all shadow-2xs cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>⚡ تعبئة 4-5 ملاحظات متوازنة للأقسام</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${isBalancedMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isBalancedMenuOpen && (
+                <div
+                  className="absolute left-0 mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-800"
+                  onClick={() => setIsBalancedMenuOpen(false)}
+                >
+                  <div className="px-3.5 py-1.5 border-b border-slate-100">
+                    <p className="text-xs font-black text-slate-900">تعبئة سريعة بملاحظات متوازنة</p>
+                    <p className="text-[11px] text-slate-500 font-medium">4 إلى 5 ملاحظات مع 1-2 لكل قسم</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleLoadBalancedPreset(1)}
+                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 1: عيادة، فحوصات، عمليات، إفاقة</span>
+                      <span className="text-[10px] text-slate-500">5 ملاحظات</span>
+                    </div>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">5 بنود</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleLoadBalancedPreset(2)}
+                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 2: عيادة، فحوصات، غسيل أيدي، عمليات</span>
+                      <span className="text-[10px] text-slate-500">5 ملاحظات</span>
+                    </div>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">5 بنود</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleLoadBalancedPreset(3)}
+                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 3: عيادة، فحوصات، عمليات، تعقيم</span>
+                      <span className="text-[10px] text-slate-500">4 ملاحظات</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">4 بنود</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleLoadBalancedPreset(4)}
+                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 4: داخلي، فحوصات، عمليات، إفاقة</span>
+                      <span className="text-[10px] text-slate-500">4 ملاحظات</span>
+                    </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">4 بنود</span>
+                  </button>
+
+                  <div className="border-t border-slate-100 mt-1 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleLoadBalancedPreset()}
+                      className="w-full px-3.5 py-2 text-right text-xs text-indigo-700 hover:bg-indigo-50 font-bold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>توليد فوري لـ 5 ملاحظات متوازنة عشوائياً</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => setIsPickerModalOpen(true)}
@@ -831,11 +944,20 @@ export const RoundForm: React.FC<RoundFormProps> = ({
             <div>
               <p className="text-sm font-bold text-slate-800">لا توجد ملاحظات مسجلة في جدول التقرير حتى الآن</p>
               <p className="text-xs text-slate-500 mt-1">
-                اضغط على زر (إضافة ملاحظة جديدة) للاختيار من ملخص اليوم أو بنك الأقسام المعتمد، أو أضف سطراً يدوياً
+                يمكنك التعبئة الفورية بـ 4-5 ملاحظات افتراضية متوازنة عبر الأقسام، أو الاختيار من الملخص وبنك الملاحظات
               </p>
             </div>
 
             <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => handleLoadBalancedPreset(1)}
+                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>⚡ تعبئة بتقرير افتراضي متوازن (5 ملاحظات للأقسام)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsPickerModalOpen(true)}
