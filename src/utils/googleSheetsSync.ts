@@ -76,52 +76,77 @@ export interface SyncResponse {
 }
 
 /**
- * Save / Sync a single Meeting to Google Sheets
+ * Safe helper to POST payload to Google Apps Script Web App
  */
-export async function syncMeetingToGoogleSheets(
-  meeting: Meeting,
-  customSheetId?: string
-): Promise<SyncResponse> {
+async function postToGoogleAppsScript(payload: any): Promise<SyncResponse> {
   const url = getGoogleSheetUrl();
-  const sheetId = customSheetId || getGoogleSheetId();
-
   try {
-    const payload = {
-      action: "save_meeting",
-      sheetId: sheetId || undefined,
-      data: {
-        meetingNumber: meeting.meetingNumber,
-        monthName: meeting.agenda && meeting.agenda.length > 0 ? meeting.agenda[0] : "اجتماع شهري",
-        date: meeting.date,
-        day: meeting.day,
-        time: meeting.time,
-        centerName: meeting.centerName,
-        location: meeting.location,
-        agenda: meeting.agenda,
-        previousMeetingFollowUp: meeting.previousMeetingFollowUp,
-        members: meeting.members,
-        kpis: meeting.kpis,
-        decisions: meeting.decisions,
-      },
-    };
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
       },
       body: JSON.stringify(payload),
+      redirect: "follow",
     });
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result: SyncResponse;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      if (response.ok || responseText.includes("success") || response.status === 200) {
+        result = {
+          success: true,
+          message: "تم إرسال وحفظ البيانات بنجاح في Google Sheets",
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        result = {
+          success: false,
+          error: responseText || `فشل الاتصال بـ Google Sheets (${response.status})`,
+        };
+      }
+    }
     return result;
   } catch (error: any) {
-    console.error("Error syncing meeting to Google Sheets:", error);
+    console.error("Error communicating with Google Apps Script:", error);
     return {
       success: false,
-      error: error?.message || "فشل الاتصال بـ Google Sheets",
+      error: error?.message || "فشل الاتصال بـ Google Sheets. يرجى التأكد من الاتصال بالإنترنت ومطابقة رابط الـ Apps Script.",
     };
   }
+}
+
+/**
+ * Save / Sync a single Meeting to Google Sheets
+ */
+export async function syncMeetingToGoogleSheets(
+  meeting: Meeting,
+  customSheetId?: string
+): Promise<SyncResponse> {
+  const sheetId = customSheetId || getGoogleSheetId();
+
+  const payload = {
+    action: "save_meeting",
+    sheetId: sheetId || undefined,
+    data: {
+      meetingNumber: meeting.meetingNumber,
+      monthName: meeting.agenda && meeting.agenda.length > 0 ? meeting.agenda[0] : "اجتماع شهري",
+      date: meeting.date,
+      day: meeting.day,
+      time: meeting.time,
+      centerName: meeting.centerName,
+      location: meeting.location,
+      agenda: meeting.agenda,
+      previousMeetingFollowUp: meeting.previousMeetingFollowUp,
+      members: meeting.members,
+      kpis: meeting.kpis,
+      decisions: meeting.decisions,
+    },
+  };
+
+  return await postToGoogleAppsScript(payload);
 }
 
 /**
@@ -131,53 +156,35 @@ export async function syncRoundToGoogleSheets(
   round: RoundReport,
   customSheetId?: string
 ): Promise<SyncResponse> {
-  const url = getGoogleSheetUrl();
   const sheetId = customSheetId || getGoogleSheetId();
 
-  try {
-    const payload = {
-      action: "save_round",
-      sheetId: sheetId || undefined,
-      data: {
-        title: round.title,
-        department: round.department || "عام",
-        date: round.date,
-        day: round.day,
-        period: round.period,
-        inspector: round.inspector,
-        supervisorRole: round.supervisorRole,
-        centerName: round.centerName,
-        generalRecommendation: round.generalRecommendation,
-        observations: round.observations,
-        actionPlan: (round.observations || []).map((obs) => ({
-          id: obs.id,
-          observation: obs.observation,
-          action: obs.recommendation,
-          responsible: obs.responsible,
-          status: obs.status,
-          dueDate: obs.dueDate,
-          location: obs.location,
-        })),
-      },
-    };
+  const payload = {
+    action: "save_round",
+    sheetId: sheetId || undefined,
+    data: {
+      title: round.title,
+      department: round.department || "عام",
+      date: round.date,
+      day: round.day,
+      period: round.period,
+      inspector: round.inspector,
+      supervisorRole: round.supervisorRole,
+      centerName: round.centerName,
+      generalRecommendation: round.generalRecommendation,
+      observations: round.observations,
+      actionPlan: (round.observations || []).map((obs) => ({
+        id: obs.id,
+        observation: obs.observation,
+        action: obs.recommendation,
+        responsible: obs.responsible,
+        status: obs.status,
+        dueDate: obs.dueDate,
+        location: obs.location,
+      })),
+    },
+  };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-    return result;
-  } catch (error: any) {
-    console.error("Error syncing round to Google Sheets:", error);
-    return {
-      success: false,
-      error: error?.message || "فشل الاتصال بـ Google Sheets",
-    };
-  }
+  return await postToGoogleAppsScript(payload);
 }
 
 /**
@@ -187,7 +194,6 @@ export async function syncHandHygieneSessionToGoogleSheets(
   session: WHOObservationSession,
   customSheetId?: string
 ): Promise<SyncResponse> {
-  const url = getGoogleSheetUrl();
   const sheetId = customSheetId || getGoogleSheetId();
 
   // Compute metrics for this single session
@@ -214,59 +220,42 @@ export async function syncHandHygieneSessionToGoogleSheets(
   const actCount = hrCount + hwCount;
   const complianceRate = oppCount > 0 ? Math.round((actCount / oppCount) * 1000) / 10 : 0;
 
-  try {
-    const payload = {
-      action: "save_hand_hygiene_session",
-      sheetId: sheetId || undefined,
-      data: {
-        sessionNumber: session.sessionNumber,
-        facility: session.facility || "المركز الطبي",
-        service: session.service || "",
-        ward: session.ward || "",
-        department: session.department || "عام",
-        date: session.date,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        sessionDuration: session.sessionDuration || 20,
-        observer: session.observer || "فريق مكافحة العدوى",
-        periodNumber: session.periodNumber || "1",
-        notes: session.notes || "",
-        oppCount,
-        actCount,
-        hrCount,
-        hwCount,
-        missedCount,
-        glovesMisuse,
-        complianceRate: `${complianceRate}%`,
-        columns: (session.columns || []).map((col) => ({
-          columnNumber: col.columnNumber,
-          profCatCode: col.profCatCode,
-          profCatName: col.profCatName,
-          workersCount: col.workersCount,
-          opportunitiesCount: (col.opportunities || []).filter(
-            (o) => (o.indications && o.indications.length > 0) || o.action
-          ).length,
-        })),
-      },
-    };
+  const payload = {
+    action: "save_hand_hygiene_session",
+    sheetId: sheetId || undefined,
+    data: {
+      sessionNumber: session.sessionNumber,
+      facility: session.facility || "المركز الطبي",
+      service: session.service || "",
+      ward: session.ward || "",
+      department: session.department || "عام",
+      date: session.date,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      sessionDuration: session.sessionDuration || 20,
+      observer: session.observer || "فريق مكافحة العدوى",
+      periodNumber: session.periodNumber || "1",
+      notes: session.notes || "",
+      oppCount,
+      actCount,
+      hrCount,
+      hwCount,
+      missedCount,
+      glovesMisuse,
+      complianceRate: `${complianceRate}%`,
+      columns: (session.columns || []).map((col) => ({
+        columnNumber: col.columnNumber,
+        profCatCode: col.profCatCode,
+        profCatName: col.profCatName,
+        workersCount: col.workersCount,
+        opportunitiesCount: (col.opportunities || []).filter(
+          (o) => (o.indications && o.indications.length > 0) || o.action
+        ).length,
+      })),
+    },
+  };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-    return result;
-  } catch (error: any) {
-    console.error("Error syncing Hand Hygiene session to Google Sheets:", error);
-    return {
-      success: false,
-      error: error?.message || "فشل الاتصال بـ Google Sheets",
-    };
-  }
+  return await postToGoogleAppsScript(payload);
 }
 
 /**
@@ -277,7 +266,6 @@ export async function syncAllHandHygieneToGoogleSheets(
   centerSettings: CenterSettings,
   customSheetId?: string
 ): Promise<SyncResponse> {
-  const url = getGoogleSheetUrl();
   const sheetId = customSheetId || getGoogleSheetId();
 
   // Run official WHO compliance calculations
@@ -295,121 +283,104 @@ export async function syncAllHandHygieneToGoogleSheets(
     centerSettings.departmentTitle
   );
 
-  try {
-    const payload = {
-      action: "save_hand_hygiene_all",
-      sheetId: sheetId || undefined,
-      data: {
-        centerName: centerSettings.centerName,
-        departmentTitle: centerSettings.departmentTitle,
-        syncedAt: new Date().toISOString(),
-        totalSessionsCount: sessions.length,
-        overallComplianceRate: `${basicCalc.overallComplianceRate}%`,
-        grandTotal: {
-          opportunities: basicCalc.grandTotal.oppCount,
-          actions: basicCalc.grandTotal.actCount,
-          handrub: basicCalc.grandTotal.hrCount,
-          handwash: basicCalc.grandTotal.hwCount,
-          complianceRate: `${basicCalc.grandTotal.complianceRate}%`,
+  const payload = {
+    action: "save_hand_hygiene_all",
+    sheetId: sheetId || undefined,
+    data: {
+      centerName: centerSettings.centerName,
+      departmentTitle: centerSettings.departmentTitle,
+      syncedAt: new Date().toISOString(),
+      totalSessionsCount: sessions.length,
+      overallComplianceRate: `${basicCalc.overallComplianceRate}%`,
+      grandTotal: {
+        opportunities: basicCalc.grandTotal.oppCount,
+        actions: basicCalc.grandTotal.actCount,
+        handrub: basicCalc.grandTotal.hrCount,
+        handwash: basicCalc.grandTotal.hwCount,
+        complianceRate: `${basicCalc.grandTotal.complianceRate}%`,
+      },
+      professionsSummary: {
+        nurses: {
+          opp: basicCalc.totalNurse.oppCount,
+          act: basicCalc.totalNurse.actCount,
+          rate: `${basicCalc.totalNurse.complianceRate}%`,
         },
-        professionsSummary: {
-          nurses: {
-            opp: basicCalc.totalNurse.oppCount,
-            act: basicCalc.totalNurse.actCount,
-            rate: `${basicCalc.totalNurse.complianceRate}%`,
-          },
-          auxiliary: {
-            opp: basicCalc.totalAuxiliary.oppCount,
-            act: basicCalc.totalAuxiliary.actCount,
-            rate: `${basicCalc.totalAuxiliary.complianceRate}%`,
-          },
-          doctors: {
-            opp: basicCalc.totalDoctor.oppCount,
-            act: basicCalc.totalDoctor.actCount,
-            rate: `${basicCalc.totalDoctor.complianceRate}%`,
-          },
-          other: {
-            opp: basicCalc.totalOther.oppCount,
-            act: basicCalc.totalOther.actCount,
-            rate: `${basicCalc.totalOther.complianceRate}%`,
-          },
+        auxiliary: {
+          opp: basicCalc.totalAuxiliary.oppCount,
+          act: basicCalc.totalAuxiliary.actCount,
+          rate: `${basicCalc.totalAuxiliary.complianceRate}%`,
         },
-        fiveMomentsSummary: {
-          moment1_beforePatient: {
-            opp: indicationCalc.totalBefPat.indicCount,
-            act: indicationCalc.totalBefPat.actCount,
-            rate: `${indicationCalc.totalBefPat.ratio}%`,
-          },
-          moment2_beforeAseptic: {
-            opp: indicationCalc.totalBefAsept.indicCount,
-            act: indicationCalc.totalBefAsept.actCount,
-            rate: `${indicationCalc.totalBefAsept.ratio}%`,
-          },
-          moment3_afterBodyFluid: {
-            opp: indicationCalc.totalAftBf.indicCount,
-            act: indicationCalc.totalAftBf.actCount,
-            rate: `${indicationCalc.totalAftBf.ratio}%`,
-          },
-          moment4_afterPatient: {
-            opp: indicationCalc.totalAftPat.indicCount,
-            act: indicationCalc.totalAftPat.actCount,
-            rate: `${indicationCalc.totalAftPat.ratio}%`,
-          },
-          moment5_afterSurroundings: {
-            opp: indicationCalc.totalAftSurr.indicCount,
-            act: indicationCalc.totalAftSurr.actCount,
-            rate: `${indicationCalc.totalAftSurr.ratio}%`,
-          },
+        doctors: {
+          opp: basicCalc.totalDoctor.oppCount,
+          act: basicCalc.totalDoctor.actCount,
+          rate: `${basicCalc.totalDoctor.complianceRate}%`,
         },
-        sessionsList: sessions.map((sess) => {
-          let opp = 0;
-          let hw = 0;
-          let hr = 0;
-          (sess.columns || []).forEach((c) => {
-            (c.opportunities || []).forEach((o) => {
-              if ((o.indications && o.indications.length > 0) || o.action) {
-                opp += 1;
-                if (o.action === "HR") hr += 1;
-                if (o.action === "HW") hw += 1;
-              }
-            });
+        other: {
+          opp: basicCalc.totalOther.oppCount,
+          act: basicCalc.totalOther.actCount,
+          rate: `${basicCalc.totalOther.complianceRate}%`,
+        },
+      },
+      fiveMomentsSummary: {
+        moment1_beforePatient: {
+          opp: indicationCalc.totalBefPat.indicCount,
+          act: indicationCalc.totalBefPat.actCount,
+          rate: `${indicationCalc.totalBefPat.ratio}%`,
+        },
+        moment2_beforeAseptic: {
+          opp: indicationCalc.totalBefAsept.indicCount,
+          act: indicationCalc.totalBefAsept.actCount,
+          rate: `${indicationCalc.totalBefAsept.ratio}%`,
+        },
+        moment3_afterBodyFluid: {
+          opp: indicationCalc.totalAftBf.indicCount,
+          act: indicationCalc.totalAftBf.actCount,
+          rate: `${indicationCalc.totalAftBf.ratio}%`,
+        },
+        moment4_afterPatient: {
+          opp: indicationCalc.totalAftPat.indicCount,
+          act: indicationCalc.totalAftPat.actCount,
+          rate: `${indicationCalc.totalAftPat.ratio}%`,
+        },
+        moment5_afterSurroundings: {
+          opp: indicationCalc.totalAftSurr.indicCount,
+          act: indicationCalc.totalAftSurr.actCount,
+          rate: `${indicationCalc.totalAftSurr.ratio}%`,
+        },
+      },
+      sessionsList: sessions.map((sess) => {
+        let opp = 0;
+        let hw = 0;
+        let hr = 0;
+        (sess.columns || []).forEach((c) => {
+          (c.opportunities || []).forEach((o) => {
+            if ((o.indications && o.indications.length > 0) || o.action) {
+              opp += 1;
+              if (o.action === "HR") hr += 1;
+              if (o.action === "HW") hw += 1;
+            }
           });
-          const act = hw + hr;
-          const rate = opp > 0 ? Math.round((act / opp) * 1000) / 10 : 0;
-          return {
-            sessionNumber: sess.sessionNumber,
-            date: sess.date,
-            ward: sess.ward,
-            department: sess.department,
-            observer: sess.observer,
-            durationMin: sess.sessionDuration || 20,
-            oppCount: opp,
-            actCount: act,
-            hrCount: hr,
-            hwCount: hw,
-            rate: `${rate}%`,
-          };
-        }),
-      },
-    };
+        });
+        const act = hw + hr;
+        const rate = opp > 0 ? Math.round((act / opp) * 1000) / 10 : 0;
+        return {
+          sessionNumber: sess.sessionNumber,
+          date: sess.date,
+          ward: sess.ward,
+          department: sess.department,
+          observer: sess.observer,
+          durationMin: sess.sessionDuration || 20,
+          oppCount: opp,
+          actCount: act,
+          hrCount: hr,
+          hwCount: hw,
+          rate: `${rate}%`,
+        };
+      }),
+    },
+  };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-    return result;
-  } catch (error: any) {
-    console.error("Error syncing full Hand Hygiene to Google Sheets:", error);
-    return {
-      success: false,
-      error: error?.message || "فشل الاتصال بـ Google Sheets",
-    };
-  }
+  return await postToGoogleAppsScript(payload);
 }
 
 /**

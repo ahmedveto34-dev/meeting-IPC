@@ -15,6 +15,8 @@ import {
   Clock,
   UserCheck,
   Sparkles,
+  Archive,
+  Check,
 } from "lucide-react";
 import {
   WHOObservationSession,
@@ -42,6 +44,7 @@ interface HandHygienePrintableModalProps {
   targetCompliance?: number;
   customNotes?: string;
   defaultDocType?: DocType;
+  onSaveToArchive?: () => void;
   onClose: () => void;
 }
 
@@ -55,6 +58,7 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
   targetCompliance = 85,
   customNotes = "",
   defaultDocType = "all-pages",
+  onSaveToArchive,
   onClose,
 }) => {
   const [docType, setDocType] = useState<DocType>(defaultDocType);
@@ -180,6 +184,17 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
+            {onSaveToArchive && (
+              <button
+                onClick={onSaveToArchive}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all active:scale-98"
+                title="حفظ وأرشفة هذه الإحصائية تلقائياً للرجوع إليها في أي وقت"
+              >
+                <Archive className="w-4 h-4 text-amber-200" />
+                <span>الأرشيف (حفظ الإحصائية)</span>
+              </button>
+            )}
+
             <button
               onClick={handleExportHtml}
               className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition-all active:scale-98"

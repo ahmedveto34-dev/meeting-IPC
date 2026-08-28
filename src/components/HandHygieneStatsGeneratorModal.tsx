@@ -27,6 +27,8 @@ import {
   Edit3,
   Check,
   Tag,
+  Save,
+  Download,
 } from "lucide-react";
 import {
   CenterSettings,
@@ -57,6 +59,19 @@ interface HandHygieneStatsGeneratorModalProps {
   periodTitle: string;
   targetCompliance: number;
   onApplyGeneratedSessions: (
+    sessions: WHOObservationSession[],
+    newPeriodTitle: string,
+    newTargetCompliance: number,
+    notes: string,
+    saveToArchiveDirectly?: boolean
+  ) => void;
+  onApplyAndPrint?: (
+    sessions: WHOObservationSession[],
+    newPeriodTitle: string,
+    newTargetCompliance: number,
+    notes: string
+  ) => void;
+  onApplyAndDownloadWord?: (
     sessions: WHOObservationSession[],
     newPeriodTitle: string,
     newTargetCompliance: number,
@@ -213,6 +228,7 @@ export const HandHygieneStatsGeneratorModal: React.FC<HandHygieneStatsGeneratorM
 
   // Product Preference
   const [handrubRatio, setHandrubRatio] = useState<number>(75); // 75% HR, 25% HW
+  const [autoSaveArchive, setAutoSaveArchive] = useState<boolean>(true);
   const [notes, setNotes] = useState(
     "تم إعداد وتوليد الإحصائية الرياضية الدقيقة وفق المعايير الفنية المعتمدة لمنظمة الصحة العالمية (WHO 5 Moments) بنسب امتثال واقعية ومحققة للمستهدف."
   );
@@ -368,7 +384,7 @@ export const HandHygieneStatsGeneratorModal: React.FC<HandHygieneStatsGeneratorM
 
   if (!isOpen) return null;
 
-  const handleGenerateAndApply = () => {
+  const handleGenerateAndApply = (actionType: "save" | "print" | "word" = "save") => {
     const customCats: WHOGeneratorCategoryItem[] = categories.map((c) => ({
       id: c.id,
       cat: c.mainCategory,
@@ -394,7 +410,14 @@ export const HandHygieneStatsGeneratorModal: React.FC<HandHygieneStatsGeneratorM
     };
 
     const generated = generateAccurateWHOSessions(options);
-    onApplyGeneratedSessions(generated, period, overallTarget, notes);
+
+    if (actionType === "print" && onApplyAndPrint) {
+      onApplyAndPrint(generated, period, overallTarget, notes);
+    } else if (actionType === "word" && onApplyAndDownloadWord) {
+      onApplyAndDownloadWord(generated, period, overallTarget, notes);
+    } else {
+      onApplyGeneratedSessions(generated, period, overallTarget, notes, autoSaveArchive);
+    }
     onClose();
   };
 
@@ -901,6 +924,32 @@ export const HandHygieneStatsGeneratorModal: React.FC<HandHygieneStatsGeneratorM
                 />
               </div>
             </div>
+
+            {/* Auto Save to Archive Toggle */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-amber-50/80 p-3 rounded-xl border border-amber-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-black text-slate-900 text-xs block">
+                    حفظ وأرشفة الإحصائية تلقائياً في الأرشيف (Auto-Archive)
+                  </span>
+                  <span className="text-[11px] text-slate-600 font-medium">
+                    يتم حفظ نسخة تاريخية كاملة مباشرة في الأرشيف للرجوع إليها في أي وقت
+                  </span>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoSaveArchive}
+                  onChange={(e) => setAutoSaveArchive(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+              </label>
+            </div>
           </div>
 
           {/* Section 4: Live Math Accuracy Preview Card */}
@@ -940,25 +989,50 @@ export const HandHygieneStatsGeneratorModal: React.FC<HandHygieneStatsGeneratorM
 
         </div>
 
-        {/* Modal Footer */}
-        <div className="bg-slate-100 p-4 sm:p-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-500 font-medium">
-            سيتم إنشاء وتوزيع الجلسات تلقائياً بدقة رياضية 100% وحفظها في التطبيق و Google Sheets
+        {/* Modal Footer with 3 Direct Completion Actions */}
+        <div className="bg-slate-100 p-4 sm:p-5 border-t border-slate-200 flex flex-col lg:flex-row items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>سيتم إنشاء الإحصائية بدقة رياضية 100% وحفظها تلقائياً في Google Sheets والأرشيف</span>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full lg:w-auto">
             <button
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-700 font-bold border border-slate-300 transition-all cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-700 font-bold border border-slate-300 transition-all cursor-pointer text-xs"
             >
               إلغاء
             </button>
+
+            {/* 1. Print Directly Button */}
             <button
-              onClick={handleGenerateAndApply}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-emerald-600 hover:from-orange-700 hover:to-emerald-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
+              onClick={() => handleGenerateAndApply("print")}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-98"
+              title="توليد الإحصائية وفتح نافذة الطباعة / الحفظ كـ PDF فوراً"
             >
-              <Sparkles className="w-4 h-4 stroke-[2.5]" />
-              <span>توليد وتطبيق الإحصائية الكاملة فوراً</span>
+              <Printer className="w-3.5 h-3.5 text-amber-300" />
+              <span>توليد والطباعة فوراً (PDF)</span>
+            </button>
+
+            {/* 2. Download Word Directly Button */}
+            <button
+              onClick={() => handleGenerateAndApply("word")}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-98"
+              title="توليد الإحصائية وتنزيل ملف التقرير بصيغة Microsoft Word فوراً"
+            >
+              <FileDown className="w-3.5 h-3.5 text-blue-200" />
+              <span>توليد وتحميل Word (.docx)</span>
+            </button>
+
+            {/* 3. Save to Google Sheets & Archive & Apply Button */}
+            <button
+              onClick={() => handleGenerateAndApply("save")}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition-all cursor-pointer"
+              title="حفظ الإحصائية في Google Sheets، وأرشفتها تلقائياً وتطبيقها على المنظومة"
+            >
+              <Save className="w-4 h-4 text-emerald-200 stroke-[2.5]" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-amber-300" />
+              <span>توليد وحفظ في Google Sheets والأرشيف</span>
             </button>
           </div>
         </div>

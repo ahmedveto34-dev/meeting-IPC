@@ -22,6 +22,11 @@ import {
 } from "../utils/handHygieneDocxExport";
 import { exportHandHygieneStatisticsToFullHtml } from "../utils/handHygieneHtmlExport";
 import {
+  syncAllHandHygieneToGoogleSheets,
+  getGoogleSpreadsheetDirectUrl,
+  getGoogleSheetId,
+} from "../utils/googleSheetsSync";
+import {
   PlusCircle,
   Sparkles,
   Printer,
@@ -63,6 +68,7 @@ import {
   Tag,
   X,
   BookOpen,
+  ExternalLink,
 } from "lucide-react";
 
 interface HandHygieneViewProps {
@@ -319,7 +325,8 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
     generatedSessions: WHOObservationSession[],
     newPeriodTitle: string,
     newTargetCompliance: number,
-    notesText: string
+    notesText: string,
+    saveToArchiveDirectly: boolean = true
   ) => {
     const newConfig: CustomStatsConfig = {
       periodTitle: newPeriodTitle || statsConfig.periodTitle,
@@ -343,14 +350,100 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
       generatedSessions.forEach((s) => onSaveSession(s));
     }
 
+    // Auto archive if requested
+    if (saveToArchiveDirectly) {
+      const autoCalculatedBasic = calculateWHOBasicCompliance(
+        generatedSessions,
+        centerSettings.centerName,
+        newConfig.periodTitle,
+        centerSettings.departmentTitle
+      );
+
+      const autoArchiveItem: WHOSavedStatisticsArchiveItem = {
+        id: `archive-hh-${Date.now()}`,
+        title: `إحصائية ${newConfig.periodTitle} (${generatedSessions.length} جلسة رصد - توليد آلي)`,
+        periodTitle: newConfig.periodTitle,
+        dateSaved: new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" }),
+        createdAt: new Date().toISOString(),
+        centerName: centerSettings.centerName,
+        departmentTitle: centerSettings.departmentTitle,
+        targetCompliance: newTargetCompliance,
+        overallCompliance: autoCalculatedBasic.overallComplianceRate,
+        totalOpportunities: autoCalculatedBasic.grandTotal.oppCount,
+        totalActions: autoCalculatedBasic.grandTotal.actCount,
+        totalSessionsCount: generatedSessions.length,
+        sessions: JSON.parse(JSON.stringify(generatedSessions)),
+        notes: notesText || newConfig.notes,
+        tags: [
+          newConfig.periodTitle,
+          `امتثال ${autoCalculatedBasic.overallComplianceRate}%`,
+          `${generatedSessions.length} جلسات`,
+          "أرشيف تلقائي",
+        ],
+      };
+
+      const updatedArchives = [autoArchiveItem, ...archivedStatistics];
+      setArchivedStatistics(updatedArchives);
+      try {
+        localStorage.setItem(STORAGE_KEY_ARCHIVES, JSON.stringify(updatedArchives));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     setSyncFeedback({
       type: "success",
-      message: `تم توليد الإحصائية الرياضية الدقيقة بنجاح (${generatedSessions.length} جلسة رصد) بنسبة مستهدفة %${newTargetCompliance} مع الحفظ التلقائي في Google Sheets!`,
+      message: `تم توليد الإحصائية بنجاح (${generatedSessions.length} جلسة رصد) بنسبة %${newTargetCompliance} مع الحفظ التلقائي في الأرشيف و Google Sheets!`,
     });
     setTimeout(() => setSyncFeedback(null), 5500);
   };
 
   // Archive Handlers
+  const handleQuickAutoSaveToArchive = () => {
+    if (!sessions || sessions.length === 0) {
+      alert("لا توجد جلسات رصد حالياً لحفظها في الأرشيف");
+      return;
+    }
+
+    const currentTitle = `إحصائية ${statsConfig.periodTitle} (${sessions.length} جلسات رصد)`;
+    const newArchiveItem: WHOSavedStatisticsArchiveItem = {
+      id: `archive-hh-${Date.now()}`,
+      title: currentTitle,
+      periodTitle: statsConfig.periodTitle,
+      dateSaved: new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" }),
+      createdAt: new Date().toISOString(),
+      centerName: centerSettings.centerName,
+      departmentTitle: centerSettings.departmentTitle,
+      targetCompliance: statsConfig.targetCompliance,
+      overallCompliance: basicCalcData.overallComplianceRate,
+      totalOpportunities: basicCalcData.grandTotal.oppCount,
+      totalActions: basicCalcData.grandTotal.actCount,
+      totalSessionsCount: sessions.length,
+      sessions: JSON.parse(JSON.stringify(sessions)),
+      notes: statsConfig.notes,
+      tags: [
+        statsConfig.periodTitle,
+        `امتثال ${basicCalcData.overallComplianceRate}%`,
+        `${sessions.length} جلسات`,
+        "حفظ تلقائي",
+      ],
+    };
+
+    const updatedArchives = [newArchiveItem, ...archivedStatistics];
+    setArchivedStatistics(updatedArchives);
+    try {
+      localStorage.setItem(STORAGE_KEY_ARCHIVES, JSON.stringify(updatedArchives));
+    } catch (e) {
+      console.error(e);
+    }
+
+    setSyncFeedback({
+      type: "success",
+      message: `تم حفظ الإحصائية "${newArchiveItem.title}" في الأرشيف بنجاح! يمكنك الرجوع إليها واستعراضها أو استعادتها في أي وقت من تبويب الأرشيف.`,
+    });
+    setTimeout(() => setSyncFeedback(null), 5000);
+  };
+
   const handleOpenSaveArchiveModal = () => {
     setArchiveTitleInput(`إحصائية ${statsConfig.periodTitle} (${sessions.length} جلسات رصد)`);
     setArchivePeriodInput(statsConfig.periodTitle);
@@ -549,6 +642,7 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
           periodTitle={statsConfig.periodTitle}
           targetCompliance={statsConfig.targetCompliance}
           customNotes={statsConfig.notes}
+          onSaveToArchive={handleOpenSaveArchiveModal}
         />
       )}
 
@@ -772,15 +866,24 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
             <span>مُولّد ومُعدّ الإحصائية الذكي</span>
           </button>
 
-          {/* Save to Archive Button */}
-          <button
-            onClick={handleOpenSaveArchiveModal}
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg shadow-amber-950/40 border border-amber-300/30 transition-all cursor-pointer active:scale-98"
-            title="حفظ نسخة كاملة من هذه الإحصائية الحالية داخل أرشيف الإحصائيات مع إمكانية استرجاعها أو حذفها لاحقاً"
-          >
-            <Archive className="w-4 h-4 text-amber-200" />
-            <span>حفظ نسخة في الأرشيف</span>
-          </button>
+          {/* Quick Archive Save Button named "الأرشيف" */}
+          <div className="inline-flex items-center rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 shadow-lg shadow-amber-950/40 border border-amber-300/40 p-0.5">
+            <button
+              onClick={handleQuickAutoSaveToArchive}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-black text-white hover:from-amber-500 hover:to-orange-500 transition-all cursor-pointer active:scale-95 rounded-xl hover:bg-white/10"
+              title="حفظ وأرشفة هذه الإحصائية الحالية تلقائياً في الأرشيف بنقرة واحدة للرجوع إليها في أي وقت"
+            >
+              <Archive className="w-4 h-4 text-amber-200" />
+              <span>الأرشيف (حفظ الإحصائية تلقائياً)</span>
+            </button>
+            <button
+              onClick={handleOpenSaveArchiveModal}
+              className="px-2.5 py-2.5 text-amber-100 hover:text-white hover:bg-white/20 rounded-xl transition-all cursor-pointer border-r border-amber-500/40"
+              title="تخصيص عنوان وملاحظات الأرشفة يدوياً"
+            >
+              <Tag className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Download Full Color HTML/PDF Report */}
           <button
