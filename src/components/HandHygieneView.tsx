@@ -3,6 +3,7 @@ import {
   WHOObservationSession,
   WHOBasicComplianceSheetData,
   WHOIndicationComplianceSheetData,
+  WHOSavedStatisticsArchiveItem,
   CenterSettings,
   WHO_FIVE_MOMENTS,
   WHO_PROF_CATEGORIES,
@@ -14,6 +15,7 @@ import {
 import { HandHygieneSessionFormModal } from "./HandHygieneSessionFormModal";
 import { HandHygienePrintableModal } from "./HandHygienePrintableModal";
 import { HandHygieneStatsGeneratorModal } from "./HandHygieneStatsGeneratorModal";
+import { DEFAULT_HAND_HYGIENE_ARCHIVES } from "../data/defaultHandHygieneArchives";
 import {
   exportHandHygieneStatisticsToWord,
   exportSingleHandHygieneSessionToWord,
@@ -53,6 +55,14 @@ import {
   Download,
   Calculator,
   Percent,
+  Archive,
+  FolderArchive,
+  ArrowRight,
+  ArrowLeft,
+  CheckCheck,
+  Tag,
+  X,
+  BookOpen,
 } from "lucide-react";
 
 interface HandHygieneViewProps {
@@ -64,9 +74,11 @@ interface HandHygieneViewProps {
   onRestoreDefaultSessions?: () => void;
   onSyncAllToGoogleSheets?: () => Promise<{ success: boolean; message?: string; error?: string }>;
   onSyncSessionToGoogleSheets?: (session: WHOObservationSession) => Promise<void>;
+  onBackToPortal?: () => void;
 }
 
 const STORAGE_KEY_STATS_CONFIG = "inf_ctrl_who_hh_config_v1";
+const STORAGE_KEY_ARCHIVES = "inf_ctrl_who_hh_archives_v1";
 
 interface CustomStatsConfig {
   periodTitle: string;
@@ -83,10 +95,31 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
   onRestoreDefaultSessions,
   onSyncAllToGoogleSheets,
   onSyncSessionToGoogleSheets,
+  onBackToPortal,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<"sessions" | "basic-calc" | "indication-calc" | "charts">("sessions");
+  const [activeSubTab, setActiveSubTab] = useState<"sessions" | "basic-calc" | "indication-calc" | "charts" | "archive">("sessions");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDeptFilter, setSelectedDeptFilter] = useState("all");
+
+  // Archives State (Persisted in localStorage)
+  const [archivedStatistics, setArchivedStatistics] = useState<WHOSavedStatisticsArchiveItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ARCHIVES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return DEFAULT_HAND_HYGIENE_ARCHIVES;
+  });
+
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
+  const [isSaveArchiveModalOpen, setIsSaveArchiveModalOpen] = useState(false);
+  const [archiveTitleInput, setArchiveTitleInput] = useState("");
+  const [archivePeriodInput, setArchivePeriodInput] = useState("");
+  const [archiveNotesInput, setArchiveNotesInput] = useState("");
+  const [archiveTargetInput, setArchiveTargetInput] = useState(85);
+
+  const [previewingArchive, setPreviewingArchive] = useState<WHOSavedStatisticsArchiveItem | null>(null);
 
   // Statistics Custom Settings (Persisted to localStorage)
   const [statsConfig, setStatsConfig] = useState<CustomStatsConfig>(() => {
@@ -317,6 +350,161 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
     setTimeout(() => setSyncFeedback(null), 5500);
   };
 
+  // Archive Handlers
+  const handleOpenSaveArchiveModal = () => {
+    setArchiveTitleInput(`إحصائية ${statsConfig.periodTitle} (${sessions.length} جلسات رصد)`);
+    setArchivePeriodInput(statsConfig.periodTitle);
+    setArchiveNotesInput(statsConfig.notes);
+    setArchiveTargetInput(statsConfig.targetCompliance);
+    setIsSaveArchiveModalOpen(true);
+  };
+
+  const handleConfirmSaveToArchive = () => {
+    if (!archiveTitleInput.trim()) {
+      alert("يرجى إدخال عنوان للإحصائية المحفوظة");
+      return;
+    }
+
+    const newArchiveItem: WHOSavedStatisticsArchiveItem = {
+      id: `archive-hh-${Date.now()}`,
+      title: archiveTitleInput.trim(),
+      periodTitle: archivePeriodInput.trim() || statsConfig.periodTitle,
+      dateSaved: new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" }),
+      createdAt: new Date().toISOString(),
+      centerName: centerSettings.centerName,
+      departmentTitle: centerSettings.departmentTitle,
+      targetCompliance: archiveTargetInput,
+      overallCompliance: basicCalcData.overallComplianceRate,
+      totalOpportunities: basicCalcData.grandTotal.oppCount,
+      totalActions: basicCalcData.grandTotal.actCount,
+      totalSessionsCount: sessions.length,
+      sessions: JSON.parse(JSON.stringify(sessions)),
+      notes: archiveNotesInput.trim(),
+      tags: [
+        archivePeriodInput.trim() || statsConfig.periodTitle,
+        `امتثال ${basicCalcData.overallComplianceRate}%`,
+        `${sessions.length} جلسات`,
+      ],
+    };
+
+    const updatedArchives = [newArchiveItem, ...archivedStatistics];
+    setArchivedStatistics(updatedArchives);
+    try {
+      localStorage.setItem(STORAGE_KEY_ARCHIVES, JSON.stringify(updatedArchives));
+    } catch (e) {
+      console.error(e);
+    }
+
+    setIsSaveArchiveModalOpen(false);
+    setSyncFeedback({
+      type: "success",
+      message: `تم حفظ الإحصائية "${newArchiveItem.title}" في أرشيف الإحصائيات بنجاح! يمكنك استعراضها وحذفها في أي وقت من تبويب الأرشيف.`,
+    });
+    setTimeout(() => setSyncFeedback(null), 5000);
+  };
+
+  const handleDeleteArchiveItem = (id: string, title: string) => {
+    if (window.confirm(`هل أنت متأكد من حذف الإحصائية "${title}" من الأرشيف نهائياً؟`)) {
+      const updated = archivedStatistics.filter((item) => item.id !== id);
+      setArchivedStatistics(updated);
+      try {
+        localStorage.setItem(STORAGE_KEY_ARCHIVES, JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      setSyncFeedback({
+        type: "success",
+        message: `تم حذف الإحصائية "${title}" من الأرشيف بنجاح.`,
+      });
+      setTimeout(() => setSyncFeedback(null), 3500);
+    }
+  };
+
+  const handleApplyArchiveAsActive = (item: WHOSavedStatisticsArchiveItem) => {
+    if (
+      window.confirm(
+        `هل تريد تفعيل وتحميل إحصائية "${item.title}" (${item.sessions.length} جلسة رصد) لتصبح الإحصائية النشطة الحالية بالشاشة؟`
+      )
+    ) {
+      if (onSetAllSessions) {
+        onSetAllSessions(item.sessions);
+      } else {
+        item.sessions.forEach((s) => onSaveSession(s));
+      }
+
+      const newConfig: CustomStatsConfig = {
+        periodTitle: item.periodTitle || statsConfig.periodTitle,
+        targetCompliance: item.targetCompliance || statsConfig.targetCompliance,
+        notes: item.notes || statsConfig.notes,
+      };
+      setStatsConfig(newConfig);
+      try {
+        localStorage.setItem(STORAGE_KEY_STATS_CONFIG, JSON.stringify(newConfig));
+      } catch (e) {
+        console.error(e);
+      }
+
+      setActiveSubTab("sessions");
+      setSyncFeedback({
+        type: "success",
+        message: `تم تفعيل وتطبيق إحصائية "${item.title}" بنجاح في الشاشة وإعادة احتساب معدلات الامتثال!`,
+      });
+      setTimeout(() => setSyncFeedback(null), 4500);
+    }
+  };
+
+  const handleExportArchiveItemWord = async (item: WHOSavedStatisticsArchiveItem) => {
+    try {
+      const archiveBasicCalc = calculateWHOBasicCompliance(item.sessions);
+      const archiveIndicationCalc = calculateWHOIndicationCompliance(item.sessions);
+      await exportHandHygieneStatisticsToWord({
+        sessions: item.sessions,
+        basicCalcData: archiveBasicCalc,
+        indicationCalcData: archiveIndicationCalc,
+        centerSettings: {
+          ...centerSettings,
+          centerName: item.centerName || centerSettings.centerName,
+          departmentTitle: item.departmentTitle || centerSettings.departmentTitle,
+        },
+        periodTitle: item.periodTitle || item.title,
+        targetCompliance: item.targetCompliance,
+        customNotes: item.notes,
+      });
+    } catch (e) {
+      console.error(e);
+      alert("حدث خطأ أثناء تنزيل ملف Word للإحصائية المؤرشفة");
+    }
+  };
+
+  const handleExportArchiveItemHtml = (item: WHOSavedStatisticsArchiveItem) => {
+    const archiveBasicCalc = calculateWHOBasicCompliance(item.sessions);
+    const archiveIndicationCalc = calculateWHOIndicationCompliance(item.sessions);
+    exportHandHygieneStatisticsToFullHtml({
+      sessions: item.sessions,
+      basicCalcData: archiveBasicCalc,
+      indicationCalcData: archiveIndicationCalc,
+      centerSettings: {
+        ...centerSettings,
+        centerName: item.centerName || centerSettings.centerName,
+        departmentTitle: item.departmentTitle || centerSettings.departmentTitle,
+      },
+      periodTitle: item.periodTitle || item.title,
+      targetCompliance: item.targetCompliance,
+      customNotes: item.notes,
+    });
+  };
+
+  const filteredArchives = archivedStatistics.filter((item) => {
+    if (!archiveSearchQuery.trim()) return true;
+    const q = archiveSearchQuery.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(q) ||
+      item.periodTitle.toLowerCase().includes(q) ||
+      (item.notes && item.notes.toLowerCase().includes(q)) ||
+      (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
+    );
+  });
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200 font-['Cairo',sans-serif]">
       
@@ -364,6 +552,146 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
         />
       )}
 
+      {/* Archive Item Printable Modal */}
+      {previewingArchive && (
+        <HandHygienePrintableModal
+          isOpen={!!previewingArchive}
+          session={previewingArchive.sessions[0] || null}
+          allSessions={previewingArchive.sessions}
+          basicCalcData={calculateWHOBasicCompliance(previewingArchive.sessions)}
+          indicationCalcData={calculateWHOIndicationCompliance(previewingArchive.sessions)}
+          onClose={() => setPreviewingArchive(null)}
+          defaultDocType="all-pages"
+          centerSettings={{
+            ...centerSettings,
+            centerName: previewingArchive.centerName || centerSettings.centerName,
+            departmentTitle: previewingArchive.departmentTitle || centerSettings.departmentTitle,
+          }}
+          periodTitle={previewingArchive.periodTitle || previewingArchive.title}
+          targetCompliance={previewingArchive.targetCompliance}
+          customNotes={previewingArchive.notes}
+        />
+      )}
+
+      {/* Save to Archive Modal */}
+      {isSaveArchiveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-150 font-['Cairo',sans-serif]">
+          <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-xs">
+                  <Archive className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight">
+                    حفظ الإحصائية الحالية في أرشيف الإحصائيات
+                  </h3>
+                  <p className="text-xs text-amber-100 font-medium">
+                    إنشاء لقطة وأرشفة كاملة لجلسات الرصد ({sessions.length} جلسة) ومعدل الامتثال ({basicCalcData.overallComplianceRate}%)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSaveArchiveModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200 text-xs text-amber-900 space-y-1.5 font-medium">
+                <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>معلومات الإحصائية التي سيتم أرشفتها:</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div>• عدد الجلسات: <strong>{sessions.length} جلسات رصد</strong></div>
+                  <div>• إجمالي الفرص: <strong>{basicCalcData.grandTotal.oppCount} فرصة</strong></div>
+                  <div>• نسبة الامتثال: <strong className="text-emerald-700 font-black">%{basicCalcData.overallComplianceRate}</strong></div>
+                  <div>• المنشأة: <strong>{centerSettings.centerName}</strong></div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  عنوان الإحصائية بالأرشيف <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={archiveTitleInput}
+                  onChange={(e) => setArchiveTitleInput(e.target.value)}
+                  placeholder="مثال: إحصائية الربع الأول Q1 2026 - مستشفى..."
+                  className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                    مسمى الفترة الإحصائية
+                  </label>
+                  <input
+                    type="text"
+                    value={archivePeriodInput}
+                    onChange={(e) => setArchivePeriodInput(e.target.value)}
+                    placeholder="مثال: الربع الأول 2026"
+                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                    نسبة الامتثال المستهدفة (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={archiveTargetInput}
+                    onChange={(e) => setArchiveTargetInput(Number(e.target.value) || 85)}
+                    className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                  ملاحظات أو توصيات مرفقة
+                </label>
+                <textarea
+                  rows={3}
+                  value={archiveNotesInput}
+                  onChange={(e) => setArchiveNotesInput(e.target.value)}
+                  placeholder="أدخل أي ملاحظات توثيقية إضافية لهذه الإحصائية..."
+                  className="w-full text-xs font-medium px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsSaveArchiveModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSaveToArchive}
+                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 shadow-md shadow-amber-600/30 transition-all flex items-center gap-2 cursor-pointer active:scale-98"
+              >
+                <Save className="w-4 h-4" />
+                <span>تأكيد الحفظ في الأرشيف</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sync Feedback Alert */}
       {syncFeedback && (
         <div
@@ -394,6 +722,17 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
       <div className="relative rounded-3xl p-6 sm:p-7 text-white shadow-xl bg-gradient-to-r from-orange-900 via-amber-950 to-slate-950 border border-amber-500/20 flex flex-col lg:flex-row lg:items-center justify-between gap-6 overflow-hidden">
         <div className="relative z-10 space-y-2 max-w-2xl">
           <div className="flex items-center gap-2.5 flex-wrap">
+            {onBackToPortal && (
+              <button
+                type="button"
+                onClick={onBackToPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white bg-black/40 hover:bg-black/60 border border-white/20 transition-all cursor-pointer mr-1 shadow-sm"
+                title="العودة للشاشة الرئيسية للبوابة"
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>العودة للرئيسية</span>
+              </button>
+            )}
             <span className="bg-[#E65100] text-white px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase shadow-sm">
               SAVE LIVES: Clean Your Hands • WHO
             </span>
@@ -415,7 +754,7 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
             إحصائية ومعدلات الامتثال لنظافة وتطهير الأيدي (Hand Hygiene Compliance)
           </h1>
           <p className="text-xs sm:text-sm text-amber-100/90 font-medium leading-relaxed">
-            توثيق جلسات الرصد الميداني بدواعي الغسيل الخمسة (WHO 5 Moments)، حساب معدلات الامتثال للفئات المهنية (Page 3)، ونسب الدواعي (Page 4) مع إمكانية التعديل، الحفظ في التطبيق، وتصدير التقارير بصيغة Word (.docx) و PDF.
+            توثيق جلسات الرصد الميداني بدواعي الغسيل الخمسة (WHO 5 Moments)، حساب معدلات الامتثال للفئات المهنية (Page 3)، ونسب الدواعي (Page 4) مع إمكانية التعديل، الحفظ في الأرشيف، وتصدير التقارير بصيغة Word (.docx) و PDF.
           </p>
         </div>
 
@@ -431,6 +770,16 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
             <Calculator className="w-4 h-4 text-white stroke-[2.5]" />
             <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
             <span>مُولّد ومُعدّ الإحصائية الذكي</span>
+          </button>
+
+          {/* Save to Archive Button */}
+          <button
+            onClick={handleOpenSaveArchiveModal}
+            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg shadow-amber-950/40 border border-amber-300/30 transition-all cursor-pointer active:scale-98"
+            title="حفظ نسخة كاملة من هذه الإحصائية الحالية داخل أرشيف الإحصائيات مع إمكانية استرجاعها أو حذفها لاحقاً"
+          >
+            <Archive className="w-4 h-4 text-amber-200" />
+            <span>حفظ نسخة في الأرشيف</span>
           </button>
 
           {/* Download Full Color HTML/PDF Report */}
@@ -742,6 +1091,18 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
           >
             <BarChart3 className="w-4 h-4" />
             <span>لوحة التحليلات والمقارنات</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab("archive")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeSubTab === "archive"
+                ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-sm shadow-amber-500/25 ring-1 ring-amber-500 font-black"
+                : "bg-amber-50/70 text-amber-900 hover:bg-amber-100 border border-amber-200/80 font-bold"
+            }`}
+          >
+            <FolderArchive className="w-4 h-4 text-amber-500" />
+            <span>أرشيف الإحصائيات المحفوظة ({archivedStatistics.length})</span>
           </button>
         </div>
 
@@ -1556,6 +1917,270 @@ export const HandHygieneView: React.FC<HandHygieneViewProps> = ({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SUB-TAB 5: ARCHIVED STATISTICS & SNAPSHOTS (الأرشيف والحذف والمعاينة)     */}
+      {/* ========================================================================= */}
+      {activeSubTab === "archive" && (
+        <div className="space-y-6">
+          {/* Archive Header & Filter Toolbar */}
+          <div className="bg-gradient-to-r from-amber-900 via-orange-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl border border-amber-500/20 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                  <FolderArchive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">
+                    أرشيف إحصائيات نظافة وتطهير الأيدي (WHO Archive)
+                  </h2>
+                  <p className="text-xs text-amber-200/90 font-medium">
+                    سجل شامل لجميع الإحصائيات والتقارير الدورية المحفوظة مع إمكانية المعاينة والطباعة والتصدير والحذف والتفعيل
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleOpenSaveArchiveModal}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black text-slate-950 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 transition-all cursor-pointer shadow-lg shadow-orange-500/25 active:scale-98"
+              >
+                <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+                <span>أرشفة الإحصائية الحالية الآن</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("هل تريد استعادة نماذج الأرشيف الافتراضية (سنة 2025 والربع الرابع)؟")) {
+                    setArchivedStatistics(DEFAULT_HAND_HYGIENE_ARCHIVES);
+                    try {
+                      localStorage.setItem(STORAGE_KEY_ARCHIVES, JSON.stringify(DEFAULT_HAND_HYGIENE_ARCHIVES));
+                    } catch (e) {
+                      console.error(e);
+                    }
+                    setSyncFeedback({
+                      type: "success",
+                      message: "تمت استعادة نماذج الأرشيف الافتراضية بنجاح!",
+                    });
+                    setTimeout(() => setSyncFeedback(null), 3500);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold text-amber-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
+                title="استعادة نماذج الأرشيف النموذجية"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>استعادة نماذج الأرشيف</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={archiveSearchQuery}
+                onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                placeholder="البحث في الأرشيف بالعنوان، الفترة، الملاحظات، أو العلامات..."
+                className="w-full text-xs font-bold pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors"
+              />
+              {archiveSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setArchiveSearchQuery("")}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs font-bold text-slate-500 flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded-xl">
+              <FolderArchive className="w-3.5 h-3.5 text-amber-600" />
+              <span>إجمالي الإحصائيات المؤرشفة: <strong>{archivedStatistics.length}</strong></span>
+            </div>
+          </div>
+
+          {/* Archive Cards Grid */}
+          {filteredArchives.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200 shadow-inner">
+                <FolderArchive className="w-8 h-8" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-base font-black text-slate-900">
+                  {archiveSearchQuery ? "لا توجد نتائج مطابقة لبحثك في الأرشيف" : "لا توجد إحصائيات محفوظة بالأرشيف حالياً"}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  {archiveSearchQuery
+                    ? "جرّب تغيير كلمات البحث أو مسح حقل البحث لإظهار كافة الإحصائيات."
+                    : "يمكنك حفظ الإحصائية الحالية بنقرة واحدة عبر زر 'حفظ نسخة في الأرشيف' أو استعادة النماذج السابقة."}
+                </p>
+              </div>
+              <div className="pt-2 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleOpenSaveArchiveModal}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-white bg-amber-600 hover:bg-amber-700 shadow-sm cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>أرشفة الإحصائية الحالية الآن</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {filteredArchives.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-3xl border-2 border-slate-200 hover:border-amber-400 p-5 sm:p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                >
+                  {/* Top: Header Info & Compliance Badge */}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-md flex items-center gap-1 border border-amber-200">
+                            <Calendar className="w-3 h-3 text-amber-700" />
+                            <span>{item.periodTitle}</span>
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            <span>تاريخ الأرشفة: {item.dateSaved}</span>
+                          </span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 group-hover:text-amber-700 transition-colors pt-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium">
+                          المنشأة: <strong>{item.centerName || centerSettings.centerName}</strong> | {item.departmentTitle || centerSettings.departmentTitle}
+                        </p>
+                      </div>
+
+                      {/* Big Compliance Rate Circle/Badge */}
+                      <div className={`p-3 rounded-2xl text-center shrink-0 border ${
+                        item.overallCompliance >= (item.targetCompliance || 85)
+                          ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+                          : item.overallCompliance >= 70
+                          ? "bg-amber-50 border-amber-300 text-amber-900"
+                          : "bg-rose-50 border-rose-300 text-rose-900"
+                      }`}>
+                        <div className="text-2xl font-black">
+                          %{item.overallCompliance}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500">
+                          الهدف: %{item.targetCompliance || 85}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Metrics Row */}
+                    <div className="grid grid-cols-3 gap-2 bg-slate-50 rounded-2xl p-3 border border-slate-100 text-center">
+                      <div>
+                        <span className="block text-[10px] text-slate-500 font-bold">جلسات الرصد</span>
+                        <span className="text-sm font-black text-slate-900">{item.totalSessionsCount || item.sessions.length}</span>
+                      </div>
+                      <div className="border-r border-slate-200">
+                        <span className="block text-[10px] text-slate-500 font-bold">إجمالي الفرص</span>
+                        <span className="text-sm font-black text-blue-700">{item.totalOpportunities}</span>
+                      </div>
+                      <div className="border-r border-slate-200">
+                        <span className="block text-[10px] text-slate-500 font-bold">الإجراءات المطبقة</span>
+                        <span className="text-sm font-black text-emerald-700">{item.totalActions}</span>
+                      </div>
+                    </div>
+
+                    {/* Notes (if any) */}
+                    {item.notes && (
+                      <p className="text-xs text-slate-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60 font-medium leading-relaxed">
+                        📝 <strong>ملاحظات:</strong> {item.notes}
+                      </p>
+                    )}
+
+                    {/* Tags */}
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {item.tags.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200"
+                          >
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions Toolbar */}
+                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Preview & Print WHO 5 Pages */}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewingArchive(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-slate-900 hover:bg-slate-800 shadow-2xs transition-all cursor-pointer"
+                        title="معاينة وطباعة التقرير الشامل (5 صفحات WHO) لهذه الإحصائية المؤرشفة"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-amber-300" />
+                        <span>معاينة وطباعة (PDF)</span>
+                      </button>
+
+                      {/* Download Word (.docx) */}
+                      <button
+                        type="button"
+                        onClick={() => handleExportArchiveItemWord(item)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all cursor-pointer"
+                        title="تنزيل تقرير الإحصائية المؤرشفة كملف Word (.docx)"
+                      >
+                        <FileDown className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Word</span>
+                      </button>
+
+                      {/* Download HTML */}
+                      <button
+                        type="button"
+                        onClick={() => handleExportArchiveItemHtml(item)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all cursor-pointer"
+                        title="تنزيل التقرير الملون بكافة الصفحات 1-5"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-purple-600" />
+                        <span>تقرير ملون</span>
+                      </button>
+
+                      {/* Load / Activate */}
+                      <button
+                        type="button"
+                        onClick={() => handleApplyArchiveAsActive(item)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer"
+                        title="تفعيل هذه الإحصائية المؤرشفة لتصبح الإحصائية النشطة الحالية بالشاشة"
+                      >
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>تفعيل بالشاشة</span>
+                      </button>
+                    </div>
+
+                    {/* Delete Archive Item */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteArchiveItem(item.id, item.title)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 transition-all cursor-pointer"
+                      title="حذف هذه الإحصائية من الأرشيف نهائياً"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

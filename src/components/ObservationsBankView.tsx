@@ -75,6 +75,7 @@ interface ObservationsBankViewProps {
   onAddTopicToRound: (topics: MeetingTopic[], targetRoundId?: string) => void;
   onOpenNewRound: () => void;
   onOpenNewMeeting: () => void;
+  onBackToPortal?: () => void;
 }
 
 export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
@@ -88,6 +89,7 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
   onAddTopicToRound,
   onOpenNewRound,
   onOpenNewMeeting,
+  onBackToPortal,
 }) => {
   // Main view mode: "summary" | "policies" | "observations" | "topics" | "all"
   const [activeBankTab, setActiveBankTab] = useState<"summary" | "policies" | "observations" | "topics" | "all">("summary");
@@ -529,9 +531,22 @@ export const ObservationsBankView: React.FC<ObservationsBankViewProps> = ({
       <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              <BookMarked className="w-3.5 h-3.5" />
-              <span>مبوبة حسب سياسات الدليل القومي المصري لمكافحة العدوى 2020</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {onBackToPortal && (
+                <button
+                  type="button"
+                  onClick={onBackToPortal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                  title="العودة للشاشة الرئيسية للبوابة"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>العودة للرئيسية</span>
+                </button>
+              )}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <BookMarked className="w-3.5 h-3.5" />
+                <span>مبوبة حسب سياسات الدليل القومي المصري لمكافحة العدوى 2020</span>
+              </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
               بنك سياسات وملاحظات مكافحة العدوى

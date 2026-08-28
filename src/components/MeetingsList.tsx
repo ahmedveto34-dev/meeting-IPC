@@ -11,6 +11,7 @@ import {
   Eye,
   CheckCircle2,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import { Meeting } from "../types";
 import { exportMeetingToDocx } from "../utils/docxExport";
@@ -22,6 +23,7 @@ interface MeetingsListProps {
   onNewMeeting: () => void;
   onDuplicateMeeting: (meeting: Meeting) => void;
   onDeleteMeeting: (id: string) => void;
+  onBackToPortal?: () => void;
 }
 
 export const MeetingsList: React.FC<MeetingsListProps> = ({
@@ -31,6 +33,7 @@ export const MeetingsList: React.FC<MeetingsListProps> = ({
   onNewMeeting,
   onDuplicateMeeting,
   onDeleteMeeting,
+  onBackToPortal,
 }) => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -54,6 +57,17 @@ export const MeetingsList: React.FC<MeetingsListProps> = ({
       <div className="relative rounded-3xl p-6 sm:p-7 text-white shadow-xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="relative z-10 space-y-1.5">
           <div className="flex items-center gap-2.5">
+            {onBackToPortal && (
+              <button
+                type="button"
+                onClick={onBackToPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer mr-1"
+                title="العودة للشاشة الرئيسية للبوابة"
+              >
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة للرئيسية</span>
+              </button>
+            )}
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <FileText className="w-5 h-5 stroke-[2.3]" />
             </div>
@@ -67,6 +81,15 @@ export const MeetingsList: React.FC<MeetingsListProps> = ({
         </div>
 
         <div className="relative z-10 flex items-center gap-2">
+          {onBackToPortal && (
+            <button
+              onClick={onBackToPortal}
+              className="inline-flex sm:hidden items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>الرئيسية</span>
+            </button>
+          )}
           <button
             onClick={onNewMeeting}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-black text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-98 cursor-pointer"

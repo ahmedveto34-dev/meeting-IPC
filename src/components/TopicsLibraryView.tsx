@@ -25,7 +25,8 @@ import {
   CheckSquare,
   Square,
   Upload,
-  Download
+  Download,
+  ArrowRight
 } from "lucide-react";
 import { MeetingTopic, CenterSettings } from "../types";
 import { TOPIC_CATEGORIES } from "../data/defaultTopics";
@@ -43,6 +44,7 @@ interface TopicsLibraryViewProps {
   onCreateMeetingFromTopic: (topic: MeetingTopic) => void;
   onCreateMeetingFromMultipleTopics?: (topics: MeetingTopic[]) => void;
   onOpenTemplatesManager?: () => void;
+  onBackToPortal?: () => void;
 }
 
 export const TopicsLibraryView: React.FC<TopicsLibraryViewProps> = ({
@@ -58,6 +60,7 @@ export const TopicsLibraryView: React.FC<TopicsLibraryViewProps> = ({
   onCreateMeetingFromTopic,
   onCreateMeetingFromMultipleTopics,
   onOpenTemplatesManager,
+  onBackToPortal,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("الكل");
@@ -196,9 +199,22 @@ export const TopicsLibraryView: React.FC<TopicsLibraryViewProps> = ({
       <div className="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-xs print:border-none print:shadow-none">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
-              <BookOpen className="w-4 h-4 text-blue-600" />
-              <span>مكتبة موضوعات مكافحة العدوى المعتمدة</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              {onBackToPortal && (
+                <button
+                  type="button"
+                  onClick={onBackToPortal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition-all cursor-pointer shadow-2xs"
+                  title="العودة للشاشة الرئيسية للبوابة"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>العودة للرئيسية</span>
+                </button>
+              )}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                <span>مكتبة موضوعات مكافحة العدوى المعتمدة</span>
+              </div>
             </div>
             
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">

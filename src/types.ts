@@ -404,3 +404,22 @@ export interface WHOIndicationComplianceSheetData {
   overallRatio: number;
 }
 
+// 🌟 Saved WHO Hand Hygiene Statistics Archive Item (أرشيف الإحصائيات المحفوظة) 🌟
+export interface WHOSavedStatisticsArchiveItem {
+  id: string;
+  title: string; // e.g. "إحصائية الربع الأول 2026 - الأقسام الحرجة والداخلي"
+  periodTitle: string; // e.g. "الربع الأول (2026)"
+  dateSaved: string; // e.g. "2026/08/28 14:30"
+  createdAt: string;
+  centerName: string;
+  departmentTitle?: string;
+  targetCompliance: number; // e.g. 85%
+  overallCompliance: number; // e.g. 88.5%
+  totalOpportunities: number;
+  totalActions: number;
+  totalSessionsCount: number;
+  sessions: WHOObservationSession[]; // Full snapshot of sessions
+  notes?: string;
+  tags?: string[];
+}
+

@@ -16,6 +16,7 @@ import {
   ChevronDown,
   CheckCircle2,
   BookOpen,
+  ArrowRight,
 } from "lucide-react";
 import { RoundReport, STANDARD_ROUND_DEPARTMENTS } from "../types";
 import { exportRoundToDocx } from "../utils/docxExport";
@@ -35,6 +36,7 @@ interface RoundsListProps {
   onSaveDirectRound?: (round: RoundReport) => void;
   centerName?: string;
   inspectorName?: string;
+  onBackToPortal?: () => void;
 }
 
 export const RoundsList: React.FC<RoundsListProps> = ({
@@ -49,6 +51,7 @@ export const RoundsList: React.FC<RoundsListProps> = ({
   onSaveDirectRound,
   centerName = "Waheed IPC",
   inspectorName = "م/ أحمد وحيد شعبان",
+  onBackToPortal,
 }) => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("الكل");
@@ -102,6 +105,17 @@ export const RoundsList: React.FC<RoundsListProps> = ({
       <div className="relative rounded-3xl p-6 sm:p-7 text-white shadow-xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="relative z-10 space-y-1.5">
           <div className="flex items-center gap-2.5">
+            {onBackToPortal && (
+              <button
+                type="button"
+                onClick={onBackToPortal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 transition-all cursor-pointer mr-1"
+                title="العودة للشاشة الرئيسية للبوابة"
+              >
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة للرئيسية</span>
+              </button>
+            )}
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
               <ClipboardCheck className="w-5 h-5 stroke-[2.3]" />
             </div>
@@ -115,6 +129,15 @@ export const RoundsList: React.FC<RoundsListProps> = ({
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center gap-2.5">
+          {onBackToPortal && (
+            <button
+              onClick={onBackToPortal}
+              className="inline-flex sm:hidden items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition-all"
+            >
+              <ArrowRight className="w-4 h-4" />
+              <span>الرئيسية</span>
+            </button>
+          )}
           {/* Button to Open All 7 Topics Modal */}
           <button
             type="button"
