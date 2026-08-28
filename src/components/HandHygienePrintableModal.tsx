@@ -22,6 +22,7 @@ import {
   WHOIndicationComplianceSheetData,
   CenterSettings,
 } from "../types";
+import { WHOObservationFormSheet } from "./WHOObservationFormSheet";
 import { exportHandHygieneStatisticsToFullHtml } from "../utils/handHygieneHtmlExport";
 import {
   exportHandHygieneStatisticsToWord,
@@ -61,6 +62,9 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
 
   // Use the passed session or first session from list
   const activeSession = session || allSessions[0];
+  const [selectedSessionIndex, setSelectedSessionIndex] = useState<number>(0);
+  const currentSessionList = allSessions.length > 0 ? allSessions : activeSession ? [activeSession] : [];
+  const currentDisplayedSession = currentSessionList[selectedSessionIndex] || activeSession || currentSessionList[0];
 
   const handlePrint = () => {
     window.print();
@@ -229,196 +233,14 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
                 {/* ----------------------------------------------------- */}
                 {/* PAGE 1: OFFICIAL WHO OBSERVATION FORM (Form 1)        */}
                 {/* ----------------------------------------------------- */}
-                <div className="print-page print-page-break space-y-4 pb-6 border-b-2 border-dashed border-slate-400 print:border-none">
-                  
-                  {/* Official WHO Header Banner */}
-                  <div className="bg-[#E65100] text-white p-3.5 rounded-t-lg flex items-center justify-between border-b-4 border-[#BF360C]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#E65100] font-black text-xs text-center leading-tight shadow-sm shrink-0">
-                        WHO
-                      </div>
-                      <div>
-                        <h1 className="text-sm sm:text-base font-black tracking-tight leading-snug">
-                          World Health Organization
-                        </h1>
-                        <p className="text-[10.5px] font-semibold opacity-90">
-                          Patient Safety • A World Alliance for Safer Health Care
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-left">
-                      <h2 className="text-xs sm:text-sm font-black tracking-wider uppercase">
-                        SAVE LIVES
-                      </h2>
-                      <p className="text-[11px] font-bold text-amber-200">
-                        Clean Your Hands
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Title */}
-                  <div className="text-center py-1 border-b-2 border-slate-900">
-                    <h2 className="text-lg font-black text-slate-950 tracking-wide">
-                      Observation Form
-                    </h2>
-                    <p className="text-[11px] font-bold text-slate-600">
-                      استمارة الرصد الميداني الرسمية لنظافة وتطهير الأيدي
-                    </p>
-                  </div>
-
-                  {/* Header Information Grid */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] border-1.5 border-slate-700 p-2.5 rounded-lg bg-slate-50/70">
-                    <div className="space-y-1">
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Facility:</span>
-                        <span className="font-black text-slate-900">{activeSession?.facility || centerSettings.centerName || "Waheed IPC"}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Service:</span>
-                        <span className="font-semibold text-slate-900">{activeSession?.service || "Inpatient Care"}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Ward:</span>
-                        <span className="font-semibold text-slate-900">{activeSession?.ward || "General Ward"}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Department:</span>
-                        <span className="font-semibold text-slate-900">{activeSession?.department || centerSettings.departmentTitle || "قسم مكافحة العدوى"}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold text-slate-600">Country:</span>
-                        <span className="font-semibold text-slate-900">{activeSession?.country || "Egypt"}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Period Number*:</span>
-                        <span className="font-black text-slate-900">{activeSession?.periodNumber || "1"} ({periodTitle})</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Date:</span>
-                        <span className="font-black text-slate-900">{activeSession?.date || new Date().toISOString().slice(0, 10)}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Start/End time:</span>
-                        <span className="font-semibold text-slate-900">{activeSession?.startTime || "09:00"} / {activeSession?.endTime || "09:20"}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                        <span className="font-bold text-slate-600">Session duration (mm):</span>
-                        <span className="font-bold text-slate-900">{activeSession?.sessionDuration || 20} min</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold text-slate-600">Observer (initials/name):</span>
-                        <span className="font-black text-slate-900">{activeSession?.observer || centerSettings.infectionControlLead || "IPC Lead"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 4 Column Observation Form Table */}
-                  <div className="border-1.5 border-slate-700 rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-4 divide-x divide-slate-300 text-left direction-ltr">
-                      {(activeSession?.columns || [
-                        { id: "c1", profCatCode: "1.1", profCatName: "Nurse", workersCount: 1, opportunities: [] },
-                        { id: "c2", profCatCode: "2.0", profCatName: "Auxiliary", workersCount: 1, opportunities: [] },
-                        { id: "c3", profCatCode: "3.1", profCatName: "Medical Doctor", workersCount: 1, opportunities: [] },
-                        { id: "c4", profCatCode: "4.1", profCatName: "Other HCW", workersCount: 1, opportunities: [] },
-                      ]).map((col) => (
-                        <div key={col.id} className="flex flex-col">
-                          
-                          {/* Column Header */}
-                          <div className="bg-slate-100 p-1.5 text-center border-b border-slate-300 text-[9.5px] space-y-0.5">
-                            <div className="font-bold text-slate-700">Prof.cat: <span className="text-slate-900 font-black">{col.profCatName}</span></div>
-                            <div className="font-bold text-slate-600">Code: <span className="font-mono font-black text-slate-900">{col.profCatCode}</span> &nbsp;|&nbsp; N°: <span className="font-black text-slate-900">{col.workersCount}</span></div>
-                          </div>
-
-                          {/* Table Subheader */}
-                          <div className="grid grid-cols-12 bg-slate-200/90 text-[8.5px] font-black py-0.5 px-1 text-center border-b border-slate-300">
-                            <div className="col-span-2">Opp</div>
-                            <div className="col-span-6">Indication</div>
-                            <div className="col-span-4">HH Action</div>
-                          </div>
-
-                          {/* 8 Opportunity Rows */}
-                          <div className="divide-y divide-slate-200 text-[8.5px]">
-                            {Array.from({ length: 8 }).map((_, oIdx) => {
-                              const opp = col.opportunities?.[oIdx];
-                              const indications = opp?.indications || [];
-                              const action = opp?.action;
-                              const codeMap: Record<string, string> = {
-                                bef_pat: "bef-pat.",
-                                bef_asept: "bef-asept.",
-                                aft_bf: "aft-b.f.",
-                                aft_pat: "aft-pat.",
-                                aft_surr: "aft.p.surr.",
-                              };
-
-                              return (
-                                <div key={oIdx} className="p-1 grid grid-cols-12 gap-0.5 items-center">
-                                  <div className="col-span-2 font-bold text-center font-mono">
-                                    {oIdx + 1}
-                                  </div>
-                                  <div className="col-span-6 space-y-0.5 font-mono text-[8px]">
-                                    {["bef_pat", "bef_asept", "aft_bf", "aft_pat", "aft_surr"].map((k) => {
-                                      const isSet = indications.includes(k as any);
-                                      return (
-                                        <div key={k} className="flex items-center gap-1">
-                                          <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${isSet ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                            {isSet ? "✓" : ""}
-                                          </span>
-                                          <span className={isSet ? "font-bold text-black" : "text-slate-500"}>
-                                            {codeMap[k]}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="col-span-4 space-y-0.5 text-[8px] font-mono">
-                                    <div className="flex items-center gap-1">
-                                      <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "HR" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                        {action === "HR" ? "✓" : ""}
-                                      </span>
-                                      <span>HR</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "HW" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                        {action === "HW" ? "✓" : ""}
-                                      </span>
-                                      <span>HW</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "missed" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                        {action === "missed" ? "✓" : ""}
-                                      </span>
-                                      <span>missed</span>
-                                    </div>
-                                    {opp?.gloves && (
-                                      <div className="flex items-center gap-1 text-purple-800 font-bold">
-                                        <span className="w-2.5 h-2.5 bg-purple-700 text-white text-[7.5px] text-center leading-none">✓</span>
-                                        <span>gloves</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Official Footnotes */}
-                  <div className="text-[8.5px] text-slate-500 pt-1 space-y-0.5 leading-tight">
-                    <p>* To be completed by the data manager. ** Optional, to be used if appropriate, according to the local needs and regulations.</p>
-                    <p className="font-semibold">
-                      All reasonable precautions have been taken by the World Health Organization to verify the information contained in this document. Revised August 2009.
-                    </p>
-                  </div>
-
-                  <div className="text-[10px] text-slate-500 text-center pt-1">
-                    الصفحة 1 من 5 • استمارة الرصد الميداني الرسمية (WHO Observation Form - Form 1)
+                <div className="print-page print-page-break pb-4 border-b-2 border-dashed border-slate-400 print:border-none">
+                  <WHOObservationFormSheet
+                    session={currentSessionList[0] || activeSession}
+                    pageNumber="1"
+                    totalPages="5"
+                  />
+                  <div className="text-[10px] text-slate-500 text-center pt-2 print:hidden font-bold">
+                    الصفحة 1 من 5 • استمارة الرصد الميداني الرسمية لمنظمة الصحة العالمية (WHO Observation Form - Form 1)
                   </div>
                 </div>
 
@@ -762,94 +584,120 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
                 </div>
 
                 {/* ----------------------------------------------------- */}
-                {/* PAGE 4: DETAILED OBSERVATION SESSIONS BREAKDOWN       */}
+                {/* PAGE 4: DETAILED OBSERVATION SESSIONS (AUTHENTIC WHO) */}
                 {/* ----------------------------------------------------- */}
-                <div className="print-page print-page-break space-y-4 pb-6 border-b-2 border-dashed border-slate-400 print:border-none">
-                  <div className="bg-[#E65100] text-white p-3.5 rounded-t-lg flex items-center justify-between border-b-4 border-[#BF360C]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#E65100] font-black text-xs text-center leading-tight shadow-sm shrink-0">
-                        WHO
+                <div className="print-page print-page-break space-y-6 pb-6 border-b-2 border-dashed border-slate-400 print:border-none">
+                  
+                  {/* Summary Register Table */}
+                  <div className="space-y-3">
+                    <div className="bg-[#E65100] text-white p-3.5 rounded-t-lg flex items-center justify-between border-b-4 border-[#BF360C]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#E65100] font-black text-xs text-center leading-tight shadow-sm shrink-0">
+                          WHO
+                        </div>
+                        <div>
+                          <h3 className="text-sm sm:text-base font-black tracking-tight leading-snug">
+                            World Health Organization
+                          </h3>
+                          <p className="text-[10.5px] font-semibold opacity-90">
+                            Patient Safety • A World Alliance for Safer Health Care
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm sm:text-base font-black tracking-tight leading-snug">
-                          World Health Organization
-                        </h3>
-                        <p className="text-[10.5px] font-semibold opacity-90">
-                          Patient Safety • A World Alliance for Safer Health Care
+                      <div className="text-left">
+                        <h4 className="text-xs sm:text-sm font-black tracking-wider uppercase">
+                          SAVE LIVES
+                        </h4>
+                        <p className="text-[11px] font-bold text-amber-200">
+                          Clean Your Hands
                         </p>
                       </div>
                     </div>
-                    <div className="text-left">
-                      <h4 className="text-xs sm:text-sm font-black tracking-wider uppercase">
-                        SAVE LIVES
-                      </h4>
-                      <p className="text-[11px] font-bold text-amber-200">
-                        Clean Your Hands
+
+                    <div className="text-center py-1 border-b-2 border-slate-900">
+                      <h2 className="text-base sm:text-lg font-black text-slate-950 tracking-wide">
+                        Field Observation Sessions Register
+                      </h2>
+                      <p className="text-[11px] font-bold text-slate-600">
+                        سجل وجدول استمارات جلسات الرصد الميداني ({totalSessionsCount} جلسة رصد معتمدة)
                       </p>
+                    </div>
+
+                    <div className="border-1.5 border-slate-700 rounded-lg overflow-hidden">
+                      <table className="w-full text-right text-xs border-collapse">
+                        <thead className="bg-amber-100/90 text-slate-900 font-black border-b border-slate-400">
+                          <tr>
+                            <th className="p-2 text-center w-12 border-l border-slate-300">رقم</th>
+                            <th className="p-2 border-l border-slate-300">القسم / الجناح / التاريخ</th>
+                            <th className="p-2 text-center border-l border-slate-300">الراصد والمدة</th>
+                            <th className="p-2 border-l border-slate-300">تفاصيل الفئات والفرص المرصودة</th>
+                            <th className="p-2 text-center w-28 bg-amber-200/90 text-amber-950 font-black">نسبة الامتثال %</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 text-[11px]">
+                          {currentSessionList.map((sess, sIdx) => {
+                            const matchedBasic = basicCalcData.sessions.find((b) => b.sessionNumber === sess.sessionNumber);
+                            const sessionRate = matchedBasic ? matchedBasic.total.complianceRate : 0;
+                            const sessionOpp = matchedBasic ? matchedBasic.total.oppCount : 0;
+                            const sessionAct = matchedBasic ? matchedBasic.total.actCount : 0;
+
+                            return (
+                              <tr key={sess.id || sIdx} className="hover:bg-slate-50">
+                                <td className="p-2 text-center font-black font-mono bg-slate-50 border-l border-slate-200">{sess.sessionNumber || sIdx + 1}</td>
+                                <td className="p-2 border-l border-slate-200">
+                                  <div className="font-bold text-slate-900">{sess.ward || sess.department || "قسم رصد"}</div>
+                                  <div className="text-[10.5px] text-slate-500 font-mono">تاريخ: {sess.date} {sess.startTime ? `(${sess.startTime})` : ""}</div>
+                                </td>
+                                <td className="p-2 text-center border-l border-slate-200">
+                                  <div className="font-semibold text-slate-800">{sess.observer || "مكافحة العدوى"}</div>
+                                  <div className="text-[10px] text-slate-500">{sess.sessionDuration || 20} دقيقة</div>
+                                </td>
+                                <td className="p-2 text-[10.5px] text-slate-600 border-l border-slate-200">
+                                  {(sess.columns || []).map((c) => {
+                                    const oppCount = (c.opportunities || []).filter((o) => (o.indications && o.indications.length > 0) || !!o.action).length;
+                                    return (
+                                      <span key={c.id} className="inline-block bg-slate-100 rounded px-1.5 py-0.5 ml-1 mb-1 font-mono border border-slate-200">
+                                        {c.profCatCode}: {oppCount} فرص
+                                      </span>
+                                    );
+                                  })}
+                                </td>
+                                <td className="p-2 text-center font-mono font-black text-emerald-800 bg-emerald-50/50">
+                                  <div className="text-sm">%{sessionRate}</div>
+                                  <div className="text-[10px] text-slate-500 font-semibold">({sessionAct}/{sessionOpp})</div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  <div className="text-center py-1 border-b-2 border-slate-900">
-                    <h2 className="text-base sm:text-lg font-black text-slate-950 tracking-wide">
-                      Field Observation Sessions Register
-                    </h2>
-                    <p className="text-[11px] font-bold text-slate-600">
-                      سجل وجدول استمارات جلسات الرصد الميداني ({totalSessionsCount} جلسة رصد معتمدة)
-                    </p>
+                  {/* Individual Authentic WHO Observation Sheets for each session */}
+                  <div className="space-y-6 pt-4">
+                    <div className="text-center py-1">
+                      <span className="text-xs font-black bg-orange-100 text-orange-900 px-3 py-1 rounded-full border border-orange-300">
+                        استمارات الرصد الميداني الأصلية المعتمدة (WHO Observation Form Sheets)
+                      </span>
+                    </div>
+
+                    {currentSessionList.map((sess, sIdx) => (
+                      <div
+                        key={sess.id || sIdx}
+                        className="print-page print-page-break pt-2 border-t-2 border-dashed border-slate-300 print:border-none"
+                      >
+                        <WHOObservationFormSheet
+                          session={sess}
+                          pageNumber={sIdx + 1}
+                          totalPages={currentSessionList.length}
+                        />
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="border-1.5 border-slate-700 rounded-lg overflow-hidden">
-                    <table className="w-full text-right text-xs border-collapse">
-                      <thead className="bg-amber-100/90 text-slate-900 font-black border-b border-slate-400">
-                        <tr>
-                          <th className="p-2 text-center w-12 border-l border-slate-300">رقم</th>
-                          <th className="p-2 border-l border-slate-300">القسم / الجناح / التاريخ</th>
-                          <th className="p-2 text-center border-l border-slate-300">الراصد والمدة</th>
-                          <th className="p-2 border-l border-slate-300">تفاصيل الفئات والفرص المرصودة</th>
-                          <th className="p-2 text-center w-28 bg-amber-200/90 text-amber-950 font-black">نسبة الامتثال %</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 text-[11px]">
-                        {(allSessions.length > 0 ? allSessions : activeSession ? [activeSession] : []).map((sess, sIdx) => {
-                          const matchedBasic = basicCalcData.sessions.find((b) => b.sessionNumber === sess.sessionNumber);
-                          const sessionRate = matchedBasic ? matchedBasic.total.complianceRate : 0;
-                          const sessionOpp = matchedBasic ? matchedBasic.total.oppCount : 0;
-                          const sessionAct = matchedBasic ? matchedBasic.total.actCount : 0;
-
-                          return (
-                            <tr key={sess.id || sIdx} className="hover:bg-slate-50">
-                              <td className="p-2 text-center font-black font-mono bg-slate-50 border-l border-slate-200">{sess.sessionNumber || sIdx + 1}</td>
-                              <td className="p-2 border-l border-slate-200">
-                                <div className="font-bold text-slate-900">{sess.ward || sess.department || "قسم رصد"}</div>
-                                <div className="text-[10.5px] text-slate-500 font-mono">تاريخ: {sess.date} {sess.startTime ? `(${sess.startTime})` : ""}</div>
-                              </td>
-                              <td className="p-2 text-center border-l border-slate-200">
-                                <div className="font-semibold text-slate-800">{sess.observer || "مكافحة العدوى"}</div>
-                                <div className="text-[10px] text-slate-500">{sess.sessionDuration || 20} دقيقة</div>
-                              </td>
-                              <td className="p-2 text-[10.5px] text-slate-600 border-l border-slate-200">
-                                {(sess.columns || []).map((c) => {
-                                  const oppCount = (c.opportunities || []).filter((o) => (o.indications && o.indications.length > 0) || !!o.action).length;
-                                  return (
-                                    <span key={c.id} className="inline-block bg-slate-100 rounded px-1.5 py-0.5 ml-1 mb-1 font-mono border border-slate-200">
-                                      {c.profCatCode}: {oppCount} فرص
-                                    </span>
-                                  );
-                                })}
-                              </td>
-                              <td className="p-2 text-center font-mono font-black text-emerald-800 bg-emerald-50/50">
-                                <div className="text-sm">%{sessionRate}</div>
-                                <div className="text-[10px] text-slate-500 font-semibold">({sessionAct}/{sessionOpp})</div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="text-[10px] text-slate-500 text-center pt-1">
-                    الصفحة 4 من 5 • سجل وتفاصيل جلسات الرصد الميداني
+                  <div className="text-[10px] text-slate-500 text-center pt-1 print:hidden font-bold">
+                    الصفحة 4 من 5 • سجل واستمارات جلسات الرصد الميداني (WHO Observation Sessions)
                   </div>
                 </div>
 
@@ -975,196 +823,44 @@ export const HandHygienePrintableModal: React.FC<HandHygienePrintableModalProps>
             )}
 
             {/* ========================================================= */}
-            {/* DOCUMENT 1: WHO OBSERVATION FORM (Single Session Form)    */}
+            {/* DOCUMENT 1: WHO OBSERVATION FORM (Authentic WHO Sheet)    */}
             {/* ========================================================= */}
             {docType === "session-form" && (
               <div className="space-y-4">
                 
-                {/* Official WHO Header Banner */}
-                <div className="bg-[#E65100] text-white p-3.5 rounded-t-lg flex items-center justify-between border-b-4 border-[#BF360C]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-[#E65100] font-black text-xs text-center leading-tight shadow-sm shrink-0">
-                      WHO
-                    </div>
-                    <div>
-                      <h1 className="text-sm sm:text-base font-black tracking-tight leading-snug">
-                        World Health Organization
-                      </h1>
-                      <p className="text-[10.5px] font-semibold opacity-90">
-                        Patient Safety • A World Alliance for Safer Health Care
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-left">
-                    <h2 className="text-xs sm:text-sm font-black tracking-wider uppercase">
-                      SAVE LIVES
-                    </h2>
-                    <p className="text-[11px] font-bold text-amber-200">
-                      Clean Your Hands
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-center py-1 border-b-2 border-slate-900">
-                  <h2 className="text-lg font-black text-slate-950 tracking-wide">
-                    Observation Form
-                  </h2>
-                  <p className="text-[11px] font-bold text-slate-600">
-                    استمارة الرصد الميداني الرسمية لنظافة وتطهير الأيدي (Session Form)
-                  </p>
-                </div>
-
-                {/* Header Information Grid */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] border-1.5 border-slate-700 p-2.5 rounded-lg bg-slate-50/70">
-                  <div className="space-y-1">
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Facility:</span>
-                      <span className="font-black text-slate-900">{activeSession?.facility || centerSettings.centerName || "Waheed IPC"}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Service:</span>
-                      <span className="font-semibold text-slate-900">{activeSession?.service || "Inpatient Care"}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Ward:</span>
-                      <span className="font-semibold text-slate-900">{activeSession?.ward || "General Ward"}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Department:</span>
-                      <span className="font-semibold text-slate-900">{activeSession?.department || centerSettings.departmentTitle || "قسم مكافحة العدوى"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-bold text-slate-600">Country:</span>
-                      <span className="font-semibold text-slate-900">{activeSession?.country || "Egypt"}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Period Number*:</span>
-                      <span className="font-black text-slate-900">{activeSession?.periodNumber || "1"} ({periodTitle})</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Date:</span>
-                      <span className="font-black text-slate-900">{activeSession?.date || new Date().toISOString().slice(0, 10)}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Start/End time:</span>
-                      <span className="font-semibold text-slate-900">{activeSession?.startTime || "09:00"} / {activeSession?.endTime || "09:20"}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-0.5">
-                      <span className="font-bold text-slate-600">Session duration (mm):</span>
-                      <span className="font-bold text-slate-900">{activeSession?.sessionDuration || 20} min</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-bold text-slate-600">Observer (initials/name):</span>
-                      <span className="font-black text-slate-900">{activeSession?.observer || centerSettings.infectionControlLead || "IPC Lead"}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4 Column Observation Form Table */}
-                <div className="border-1.5 border-slate-700 rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-4 divide-x divide-slate-300 text-left direction-ltr">
-                    {(activeSession?.columns || [
-                      { id: "c1", profCatCode: "1.1", profCatName: "Nurse", workersCount: 1, opportunities: [] },
-                      { id: "c2", profCatCode: "2.0", profCatName: "Auxiliary", workersCount: 1, opportunities: [] },
-                      { id: "c3", profCatCode: "3.1", profCatName: "Medical Doctor", workersCount: 1, opportunities: [] },
-                      { id: "c4", profCatCode: "4.1", profCatName: "Other HCW", workersCount: 1, opportunities: [] },
-                    ]).map((col) => (
-                      <div key={col.id} className="flex flex-col">
-                        
-                        {/* Column Header */}
-                        <div className="bg-slate-100 p-1.5 text-center border-b border-slate-300 text-[9.5px] space-y-0.5">
-                          <div className="font-bold text-slate-700">Prof.cat: <span className="text-slate-900 font-black">{col.profCatName}</span></div>
-                          <div className="font-bold text-slate-600">Code: <span className="font-mono font-black text-slate-900">{col.profCatCode}</span> &nbsp;|&nbsp; N°: <span className="font-black text-slate-900">{col.workersCount}</span></div>
-                        </div>
-
-                        {/* Table Subheader */}
-                        <div className="grid grid-cols-12 bg-slate-200/90 text-[8.5px] font-black py-0.5 px-1 text-center border-b border-slate-300">
-                          <div className="col-span-2">Opp</div>
-                          <div className="col-span-6">Indication</div>
-                          <div className="col-span-4">HH Action</div>
-                        </div>
-
-                        {/* 8 Opportunity Rows */}
-                        <div className="divide-y divide-slate-200 text-[8.5px]">
-                          {Array.from({ length: 8 }).map((_, oIdx) => {
-                            const opp = col.opportunities?.[oIdx];
-                            const indications = opp?.indications || [];
-                            const action = opp?.action;
-                            const codeMap: Record<string, string> = {
-                              bef_pat: "bef-pat.",
-                              bef_asept: "bef-asept.",
-                              aft_bf: "aft-b.f.",
-                              aft_pat: "aft-pat.",
-                              aft_surr: "aft.p.surr.",
-                            };
-
-                            return (
-                              <div key={oIdx} className="p-1 grid grid-cols-12 gap-0.5 items-center">
-                                <div className="col-span-2 font-bold text-center font-mono">
-                                  {oIdx + 1}
-                                </div>
-                                <div className="col-span-6 space-y-0.5 font-mono text-[8px]">
-                                  {["bef_pat", "bef_asept", "aft_bf", "aft_pat", "aft_surr"].map((k) => {
-                                    const isSet = indications.includes(k as any);
-                                    return (
-                                      <div key={k} className="flex items-center gap-1">
-                                        <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${isSet ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                          {isSet ? "✓" : ""}
-                                        </span>
-                                        <span className={isSet ? "font-bold text-black" : "text-slate-500"}>
-                                          {codeMap[k]}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                <div className="col-span-4 space-y-0.5 text-[8px] font-mono">
-                                  <div className="flex items-center gap-1">
-                                    <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "HR" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                      {action === "HR" ? "✓" : ""}
-                                    </span>
-                                    <span>HR</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "HW" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                      {action === "HW" ? "✓" : ""}
-                                    </span>
-                                    <span>HW</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className={`w-2.5 h-2.5 border text-center leading-none text-[7.5px] font-bold ${action === "missed" ? "bg-black text-white border-black" : "border-slate-400 bg-white"}`}>
-                                      {action === "missed" ? "✓" : ""}
-                                    </span>
-                                    <span>missed</span>
-                                  </div>
-                                  {opp?.gloves && (
-                                    <div className="flex items-center gap-1 text-purple-800 font-bold">
-                                      <span className="w-2.5 h-2.5 bg-purple-700 text-white text-[7.5px] text-center leading-none">✓</span>
-                                      <span>gloves</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
+                {/* Interactive Session Switcher (Hidden when printing) */}
+                {currentSessionList.length > 1 && (
+                  <div className="bg-slate-100 p-3 rounded-xl border border-slate-300 flex flex-wrap items-center justify-between gap-2 print:hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-700">اختر الجلسة للعرض والطباعة:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currentSessionList.map((s, idx) => (
+                          <button
+                            key={s.id || idx}
+                            onClick={() => setSelectedSessionIndex(idx)}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                              selectedSessionIndex === idx
+                                ? "bg-orange-600 text-white shadow-sm ring-2 ring-orange-300"
+                                : "bg-white text-slate-700 hover:bg-orange-50 border border-slate-300"
+                            }`}
+                          >
+                            جلسة #{s.sessionNumber || idx + 1} ({s.ward || s.department || "قسم"})
+                          </button>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-bold">
+                      جلسة {selectedSessionIndex + 1} من أصل {currentSessionList.length}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Footer Notes */}
-                <div className="text-[8.5px] text-slate-500 pt-1 space-y-0.5 leading-tight">
-                  <p>* To be completed by the data manager. ** Optional, to be used if appropriate.</p>
-                  <p className="font-semibold">
-                    All reasonable precautions have been taken by the World Health Organization to verify the information contained in this document. Revised August 2009.
-                  </p>
-                </div>
-
+                {/* The Authentic WHO Observation Form Sheet */}
+                <WHOObservationFormSheet
+                  session={currentDisplayedSession}
+                  pageNumber={selectedSessionIndex + 1}
+                  totalPages={currentSessionList.length}
+                />
               </div>
             )}
 
