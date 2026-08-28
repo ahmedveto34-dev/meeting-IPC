@@ -13,20 +13,28 @@ import { TopicsLibraryView } from "./components/TopicsLibraryView";
 import { TopicEditModal } from "./components/TopicEditModal";
 import { ObservationsBankModal } from "./components/ObservationsBankModal";
 import { ObservationsBankView } from "./components/ObservationsBankView";
+import { HandHygieneView } from "./components/HandHygieneView";
 import { SettingsModal } from "./components/SettingsModal";
 import { AiAssistantModal } from "./components/AiAssistantModal";
 import { CenterTemplatesManagerModal } from "./components/CenterTemplatesManagerModal";
 import { FileSpreadsheet, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision, MonthlyThemeTemplate, AppExportBundle } from "./types";
+import { CenterSettings, Meeting, RoundReport, StandardObservationItem, MeetingTopic, PerformanceIndicator, MeetingDecision, MonthlyThemeTemplate, AppExportBundle, WHOObservationSession } from "./types";
 import { INITIAL_MEETINGS, INITIAL_ROUNDS, DEFAULT_CENTER_SETTINGS } from "./data/seedData";
 import { DEFAULT_WEEKLY_BALANCED_ROUNDS, generateBalancedRoundObservations } from "./data/defaultRounds";
+import { DEFAULT_HAND_HYGIENE_SESSIONS } from "./data/defaultHandHygieneData";
 import { MONTHLY_TEMPLATES, DEFAULT_MONTHLY_TEMPLATES, normalizeMonthlyTemplates } from "./data/monthlyTemplates";
 import { DEFAULT_TOPICS } from "./data/defaultTopics";
-import { syncMeetingToGoogleSheets, syncRoundToGoogleSheets } from "./utils/googleSheetsSync";
+import {
+  syncMeetingToGoogleSheets,
+  syncRoundToGoogleSheets,
+  syncHandHygieneSessionToGoogleSheets,
+  syncAllHandHygieneToGoogleSheets,
+} from "./utils/googleSheetsSync";
 
 const STORAGE_KEYS = {
   MEETINGS: "inf_ctrl_meetings_v2",
   ROUNDS: "inf_ctrl_rounds_v2",
+  HAND_HYGIENE: "inf_ctrl_hand_hygiene_v2",
   SETTINGS: "inf_ctrl_settings_v2",
   TOPICS: "inf_ctrl_topics_v2",
   MONTHLY_TEMPLATES: "inf_ctrl_monthly_templates_v2",
@@ -162,6 +170,22 @@ export default function App() {
     }
   });
 
+  // WHO Hand Hygiene Observation Sessions State (طبقا لمنظمة الصحة العالمية)
+  const [handHygieneSessions, setHandHygieneSessions] = useState<WHOObservationSession[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.HAND_HYGIENE);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      return DEFAULT_HAND_HYGIENE_SESSIONS;
+    } catch {
+      return DEFAULT_HAND_HYGIENE_SESSIONS;
+    }
+  });
+
   // Navigation State
   const [currentTab, setCurrentTab] = useState<string>("portal");
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
@@ -265,6 +289,88 @@ export default function App() {
     }
   };
 
+  const triggerHandHygieneAutoSync = async (session: WHOObservationSession) => {
+    setAutoSyncState({
+      status: "syncing",
+      title: `حفظ تلقائي: جلسة رصد رقم (${session.sessionNumber})`,
+      message: "جاري حفظ وترحيل بيانات رصد غسيل الأيدي ومعدل الامتثال تلقائياً للشيت...",
+    });
+    try {
+      const res = await syncHandHygieneSessionToGoogleSheets(session);
+      if (res.success) {
+        setAutoSyncState({
+          status: "success",
+          title: `تم الحفظ التلقائي في Google Sheets بنجاح ✓`,
+          message: `تم ترحيل جلسة غسيل الأيدي (${session.ward || session.department || "جلسة رصد"}) إلى الشيت`,
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "success" ? { status: "idle" } : prev));
+        }, 3500);
+      } else {
+        setAutoSyncState({
+          status: "error",
+          title: `حفظ محلي في التطبيق`,
+          message: res.error || "تم الحفظ محلياً في ذاكرة التطبيق",
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+        }, 4000);
+      }
+    } catch {
+      setAutoSyncState({
+        status: "error",
+        title: `حفظ محلي في التطبيق`,
+        message: "تم حفظ بيانات جلسة غسيل الأيدي محلياً في ذاكرة التطبيق",
+      });
+      setTimeout(() => {
+        setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+      }, 3500);
+    }
+  };
+
+  const handleSyncAllHandHygieneToGoogleSheets = async (customSessions?: WHOObservationSession[]) => {
+    const targetSessions = customSessions || handHygieneSessions;
+    setAutoSyncState({
+      status: "syncing",
+      title: `حفظ تلقائي: إحصائيات غسيل الأيدي (Google Sheets)`,
+      message: "جاري ترحيل وتحديث كافة الجلسات وحسابات الامتثال (Page 3 & Page 4) تلقائياً للشيت...",
+    });
+    try {
+      const res = await syncAllHandHygieneToGoogleSheets(targetSessions, centerSettings);
+      if (res.success) {
+        setAutoSyncState({
+          status: "success",
+          title: `تم الحفظ التلقائي في Google Sheets بنجاح ✓`,
+          message: `تم بنجاح تحديث ${targetSessions.length} جلسة رصد ومعدلات امتثال الفئات المهنية والدواعي الخمسة`,
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "success" ? { status: "idle" } : prev));
+        }, 3500);
+        return { success: true, message: res.message };
+      } else {
+        setAutoSyncState({
+          status: "error",
+          title: `حفظ محلي في التطبيق`,
+          message: res.error || "تم الحفظ وتحديث الإحصائيات محلياً في التطبيق",
+        });
+        setTimeout(() => {
+          setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+        }, 4000);
+        return { success: false, error: res.error };
+      }
+    } catch (e: any) {
+      setAutoSyncState({
+        status: "error",
+        title: `حفظ محلي في التطبيق`,
+        message: e?.message || "تم حفظ الإحصائيات محلياً في التطبيق",
+      });
+      setTimeout(() => {
+        setAutoSyncState((prev) => (prev.status === "error" ? { status: "idle" } : prev));
+      }, 3500);
+      return { success: false, error: e?.message };
+    }
+  };
+
   // Bundle Import Handler for other centers
   const handleImportBundle = (
     bundle: Partial<AppExportBundle>,
@@ -353,6 +459,47 @@ export default function App() {
       console.error(e);
     }
   }, [monthlyTemplates]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.HAND_HYGIENE, JSON.stringify(handHygieneSessions));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [handHygieneSessions]);
+
+  // Hand Hygiene Handlers
+  const handleSaveHandHygieneSession = (savedSession: WHOObservationSession) => {
+    const exists = handHygieneSessions.some((s) => s.id === savedSession.id);
+    let updated: WHOObservationSession[];
+    if (exists) {
+      updated = handHygieneSessions.map((s) => (s.id === savedSession.id ? savedSession : s));
+    } else {
+      updated = [savedSession, ...handHygieneSessions];
+    }
+    setHandHygieneSessions(updated);
+
+    // Auto-sync both the specific session and the recalculated WHO compliance statistics to Google Sheets
+    triggerHandHygieneAutoSync(savedSession);
+    handleSyncAllHandHygieneToGoogleSheets(updated);
+  };
+
+  const handleDeleteHandHygieneSession = (sessionId: string) => {
+    const updated = handHygieneSessions.filter((s) => s.id !== sessionId);
+    setHandHygieneSessions(updated);
+    // Auto sync updated statistics to Google Sheets
+    handleSyncAllHandHygieneToGoogleSheets(updated);
+  };
+
+  const handleRestoreDefaultHandHygieneSessions = () => {
+    setHandHygieneSessions(DEFAULT_HAND_HYGIENE_SESSIONS);
+    handleSyncAllHandHygieneToGoogleSheets(DEFAULT_HAND_HYGIENE_SESSIONS);
+  };
+
+  const handleSetAllHandHygieneSessions = (newSessions: WHOObservationSession[]) => {
+    setHandHygieneSessions(newSessions);
+    handleSyncAllHandHygieneToGoogleSheets(newSessions);
+  };
 
   // Meeting Handlers
   const handleViewMeeting = (meeting: Meeting) => {
@@ -1005,6 +1152,7 @@ export default function App() {
             centerSettings={centerSettings}
             meetings={meetings}
             rounds={rounds}
+            handHygieneSessionsCount={handHygieneSessions.length}
             onStartNewRound={handleNewRound}
             onStartNewMeeting={handleNewMeeting}
             onViewMeetingsList={() => setCurrentTab("meetings")}
@@ -1012,6 +1160,7 @@ export default function App() {
             onViewObservationsBank={() => setCurrentTab("observations-bank")}
             onViewMonthlyPlan={() => setCurrentTab("monthly-plan")}
             onViewTopicsLibrary={() => setCurrentTab("topics-library")}
+            onViewHandHygiene={() => setCurrentTab("hand-hygiene")}
             onOpenAiHelper={() => setIsAiModalOpen(true)}
             onViewMeeting={handleViewMeeting}
             onViewRound={handleViewRound}
@@ -1089,6 +1238,9 @@ export default function App() {
             onConvertToMeeting={handleConvertRoundToMeeting}
             onGenerateDefaultRound={handleGenerateDefaultRound}
             onRestoreDefaultRounds={handleRestoreDefaultRounds}
+            onSaveDirectRound={handleSaveRound}
+            centerName={centerSettings.centerName}
+            inspectorName={centerSettings.infectionControlLead}
           />
         )}
 
@@ -1142,6 +1294,20 @@ export default function App() {
             onAddTopicToRound={handleAddTopicToRound}
             onOpenNewRound={handleNewRound}
             onOpenNewMeeting={handleNewMeeting}
+          />
+        )}
+
+        {/* TAB 6: Hand Hygiene Statistics (إحصائية غسيل الأيدي طبقا لمنظمة الصحة العالمية WHO) */}
+        {currentTab === "hand-hygiene" && (
+          <HandHygieneView
+            sessions={handHygieneSessions}
+            centerSettings={centerSettings}
+            onSaveSession={handleSaveHandHygieneSession}
+            onDeleteSession={handleDeleteHandHygieneSession}
+            onSetAllSessions={handleSetAllHandHygieneSessions}
+            onRestoreDefaultSessions={handleRestoreDefaultHandHygieneSessions}
+            onSyncAllToGoogleSheets={handleSyncAllHandHygieneToGoogleSheets}
+            onSyncSessionToGoogleSheets={triggerHandHygieneAutoSync}
           />
         )}
 

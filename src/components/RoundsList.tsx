@@ -15,10 +15,13 @@ import {
   RotateCcw,
   ChevronDown,
   CheckCircle2,
+  BookOpen,
 } from "lucide-react";
 import { RoundReport, STANDARD_ROUND_DEPARTMENTS } from "../types";
 import { exportRoundToDocx } from "../utils/docxExport";
 import { DEFAULT_WEEKLY_BALANCED_ROUNDS } from "../data/defaultRounds";
+import { ROUND_TOPIC_PRESETS } from "../data/roundTopicPresets";
+import { DefaultRoundTopicPickerModal } from "./DefaultRoundTopicPickerModal";
 
 interface RoundsListProps {
   rounds: RoundReport[];
@@ -29,6 +32,9 @@ interface RoundsListProps {
   onConvertToMeeting?: (round: RoundReport) => void;
   onGenerateDefaultRound?: (weekNumber: number) => void;
   onRestoreDefaultRounds?: () => void;
+  onSaveDirectRound?: (round: RoundReport) => void;
+  centerName?: string;
+  inspectorName?: string;
 }
 
 export const RoundsList: React.FC<RoundsListProps> = ({
@@ -40,10 +46,14 @@ export const RoundsList: React.FC<RoundsListProps> = ({
   onConvertToMeeting,
   onGenerateDefaultRound,
   onRestoreDefaultRounds,
+  onSaveDirectRound,
+  centerName = "Waheed IPC",
+  inspectorName = "م/ أحمد وحيد شعبان",
 }) => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("الكل");
   const [isDefaultMenuOpen, setIsDefaultMenuOpen] = useState<boolean>(false);
+  const [isTopicPickerModalOpen, setIsTopicPickerModalOpen] = useState<boolean>(false);
 
   const handleDownloadDocx = async (e: React.MouseEvent, round: RoundReport) => {
     e.stopPropagation();
@@ -68,11 +78,28 @@ export const RoundsList: React.FC<RoundsListProps> = ({
     });
   }, [rounds, selectedDeptFilter]);
 
+  const handleSelectTopicRound = (round: RoundReport) => {
+    if (onSaveDirectRound) {
+      onSaveDirectRound(round);
+    } else if (onGenerateDefaultRound) {
+      onGenerateDefaultRound(1);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-8">
+      {/* Default Round Topics Modal */}
+      <DefaultRoundTopicPickerModal
+        isOpen={isTopicPickerModalOpen}
+        onClose={() => setIsTopicPickerModalOpen(false)}
+        onSelectTopicPreset={handleSelectTopicRound}
+        mode="create_round"
+        centerName={centerName}
+        inspectorName={inspectorName}
+      />
       
       {/* Top Banner */}
-      <div className="relative rounded-3xl p-6 sm:p-7 text-white shadow-xl overflow-hidden bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+      <div className="relative rounded-3xl p-6 sm:p-7 text-white shadow-xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="relative z-10 space-y-1.5">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -83,108 +110,20 @@ export const RoundsList: React.FC<RoundsListProps> = ({
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            توثيق الملاحظات المرورية (4-5 ملاحظات متوازنة بالأقسام)، الإجراءات التصحيحية، وتصدير Word
+            توثيق الملاحظات المرورية (4-5 ملاحظات متوازنة بالأقسام والموضوعات)، الإجراءات التصحيحية، وتصدير Word
           </p>
         </div>
 
         <div className="relative z-10 flex flex-wrap items-center gap-2.5">
-          {/* Quick Default Balanced Round Generator Dropdown */}
-          {onGenerateDefaultRound && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsDefaultMenuOpen(!isDefaultMenuOpen)}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black text-blue-100 bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md transition-all cursor-pointer shadow-md"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>إنشاء تقرير افتراضي متوازن (4-5 ملاحظات)</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDefaultMenuOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {isDefaultMenuOpen && (
-                <div
-                  className="absolute left-0 mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-800"
-                  onClick={() => setIsDefaultMenuOpen(false)}
-                >
-                  <div className="px-3.5 py-2 border-b border-slate-100">
-                    <p className="text-xs font-black text-slate-900">اختر نموذج التقرير الافتراضي</p>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                      4 إلى 5 ملاحظات مع ملاحظة أو اثنتين لكل قسم
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => onGenerateDefaultRound(1)}
-                    className="w-full px-3.5 py-2.5 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">
-                        الأسبوع 1: عيادات، فحوصات، عمليات، إفاقة
-                      </span>
-                      <span className="text-[11px] text-slate-500">5 ملاحظات منتقاة بدقة</span>
-                    </div>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 font-black px-2 py-0.5 rounded-full">5 بنود</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onGenerateDefaultRound(2)}
-                    className="w-full px-3.5 py-2.5 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">
-                        الأسبوع 2: عيادة، فحوصات، غسيل أيدي، عمليات
-                      </span>
-                      <span className="text-[11px] text-slate-500">5 ملاحظات متوازنة</span>
-                    </div>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 font-black px-2 py-0.5 rounded-full">5 بنود</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onGenerateDefaultRound(3)}
-                    className="w-full px-3.5 py-2.5 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">
-                        الأسبوع 3: عيادة، فحوصات، عمليات، تعقيم
-                      </span>
-                      <span className="text-[11px] text-slate-500">4 ملاحظات متكاملة</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full">4 بنود</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onGenerateDefaultRound(4)}
-                    className="w-full px-3.5 py-2.5 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">
-                        الأسبوع 4: داخلي، فحوصات، عمليات، إفاقة
-                      </span>
-                      <span className="text-[11px] text-slate-500">4 ملاحظات شاملة</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full">4 بنود</span>
-                  </button>
-
-                  {onRestoreDefaultRounds && (
-                    <div className="border-t border-slate-100 mt-1 pt-1">
-                      <button
-                        type="button"
-                        onClick={onRestoreDefaultRounds}
-                        className="w-full px-3.5 py-2 text-right text-xs text-indigo-700 hover:bg-indigo-50 font-bold flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>استعادة التقارير الأربعة الافتراضية كاملة</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Button to Open All 7 Topics Modal */}
+          <button
+            type="button"
+            onClick={() => setIsTopicPickerModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-xs sm:text-sm font-black text-amber-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 transition-all cursor-pointer shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-98"
+          >
+            <Sparkles className="w-4 h-4 text-slate-950" />
+            <span>⚡ إنشاء تقرير افتراضي (7 موضوعات تخصصية)</span>
+          </button>
 
           <button
             onClick={onNewRound}

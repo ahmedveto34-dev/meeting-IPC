@@ -176,6 +176,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              onClick={() => setCurrentTab("hand-hygiene")}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+                currentTab === "hand-hygiene"
+                  ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm shadow-orange-500/30 ring-1 ring-orange-500"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>إحصائية غسيل الأيدي (WHO)</span>
+            </button>
+
+            <button
               onClick={() => setCurrentTab("rounds")}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
                 currentTab === "rounds" || currentTab === "round-view" || currentTab === "round-edit"

@@ -42,7 +42,9 @@ import {
   DEFAULT_WEEKLY_BALANCED_ROUNDS,
   generateBalancedRoundObservations,
 } from "../data/defaultRounds";
+import { ROUND_TOPIC_PRESETS, createRoundReportFromTopicPreset } from "../data/roundTopicPresets";
 import { RoundObservationPickerModal } from "./RoundObservationPickerModal";
+import { DefaultRoundTopicPickerModal } from "./DefaultRoundTopicPickerModal";
 
 interface RoundFormProps {
   initialRound?: RoundReport | null;
@@ -100,6 +102,7 @@ export const RoundForm: React.FC<RoundFormProps> = ({
   // Categorized Observations Multi-Select State (default closed to edit report directly)
   const [showObservationBank, setShowObservationBank] = useState<boolean>(false);
   const [isPickerModalOpen, setIsPickerModalOpen] = useState<boolean>(false);
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -339,6 +342,18 @@ export const RoundForm: React.FC<RoundFormProps> = ({
     setObservations(presetRows);
     setIsBalancedMenuOpen(false);
     showToast(`⚡ تم تعبئة التقرير بـ (${presetRows.length}) ملاحظات افتراضية متوازنة عبر كافة الأقسام`);
+
+    if (tableRef.current) {
+      tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // 🌟 Load Specific Topic Preset into Form 🌟
+  const handleLoadTopicPreset = (presetRows: RoundObservation[], topicTitle: string) => {
+    setObservations(presetRows);
+    setIsBalancedMenuOpen(false);
+    setIsTopicModalOpen(false);
+    showToast(`⚡ تم تعبئة التقرير بموضوع: "${topicTitle}" (${presetRows.length} ملاحظات)`);
 
     if (tableRef.current) {
       tableRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -818,7 +833,7 @@ export const RoundForm: React.FC<RoundFormProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 🌟 4-5 Balanced Preset Generator Button 🌟 */}
+            {/* 🌟 4-5 Balanced & Topic Presets Generator Button 🌟 */}
             <div className="relative">
               <button
                 type="button"
@@ -826,76 +841,81 @@ export const RoundForm: React.FC<RoundFormProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition-all shadow-2xs cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-amber-600" />
-                <span>⚡ تعبئة 4-5 ملاحظات متوازنة للأقسام</span>
+                <span>⚡ تعبئة موضوع مروري (4-5 ملاحظات)</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${isBalancedMenuOpen ? "rotate-180" : ""}`} />
               </button>
 
               {isBalancedMenuOpen && (
                 <div
-                  className="absolute left-0 mt-2 w-72 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-800"
+                  className="absolute left-0 mt-2 w-80 rounded-2xl bg-white shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-800"
                   onClick={() => setIsBalancedMenuOpen(false)}
                 >
-                  <div className="px-3.5 py-1.5 border-b border-slate-100">
-                    <p className="text-xs font-black text-slate-900">تعبئة سريعة بملاحظات متوازنة</p>
-                    <p className="text-[11px] text-slate-500 font-medium">4 إلى 5 ملاحظات مع 1-2 لكل قسم</p>
+                  <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/70 rounded-t-2xl">
+                    <p className="text-xs font-black text-slate-900">تعبئة سريعة حسب موضوع المرور</p>
+                    <p className="text-[11px] text-slate-500 font-medium">4 إلى 5 ملاحظات متوازنة ومحددة بالأقسام</p>
                   </div>
 
+                  {/* Open Full Topic Modal */}
                   <button
                     type="button"
-                    onClick={() => handleLoadBalancedPreset(1)}
-                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
+                    onClick={() => {
+                      setIsBalancedMenuOpen(false);
+                      setIsTopicModalOpen(true);
+                    }}
+                    className="w-full px-3.5 py-2.5 text-right text-xs bg-blue-50/90 hover:bg-blue-100 text-blue-900 font-black flex items-center justify-between transition-colors border-b border-blue-100 cursor-pointer"
                   >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 1: عيادة، فحوصات، عمليات، إفاقة</span>
-                      <span className="text-[10px] text-slate-500">5 ملاحظات</span>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      <span>تصفح واختيار من موضوعات المرور المتنوعة...</span>
                     </div>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">5 بنود</span>
+                    <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">
+                      7 موضوعات
+                    </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleLoadBalancedPreset(2)}
-                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 2: عيادة، فحوصات، غسيل أيدي، عمليات</span>
-                      <span className="text-[10px] text-slate-500">5 ملاحظات</span>
+                  <div className="max-h-60 overflow-y-auto py-1">
+                    <div className="px-3.5 py-1 text-[10px] font-bold text-slate-400 uppercase">
+                      أبرز نماذج المرور الميداني:
                     </div>
-                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">5 بنود</span>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleLoadBalancedPreset(3)}
-                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 3: عيادة، فحوصات، عمليات، تعقيم</span>
-                      <span className="text-[10px] text-slate-500">4 ملاحظات</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">4 بنود</span>
-                  </button>
+                    {ROUND_TOPIC_PRESETS.slice(0, 4).map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          const generatedObs: RoundObservation[] = preset.observations.map((obs, idx) => ({
+                            id: `ro-preset-${preset.id}-${Date.now()}-${idx + 1}`,
+                            location: obs.location,
+                            observation: obs.observation,
+                            recommendation: obs.recommendation,
+                            responsible: obs.responsible,
+                            status: obs.status,
+                          }));
+                          handleLoadTopicPreset(generatedObs, preset.topicTitle);
+                        }}
+                        className="w-full px-3.5 py-2 text-right text-xs hover:bg-slate-50 transition-colors flex items-center justify-between group cursor-pointer border-b border-slate-50 last:border-0"
+                      >
+                        <div className="pr-1 flex-1">
+                          <span className="font-bold text-slate-900 group-hover:text-blue-700 block text-[11px] leading-tight">
+                            {preset.topicTitle}
+                          </span>
+                          <span className="text-[10px] text-slate-400 line-clamp-1">{preset.departmentScope}</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded group-hover:bg-blue-100 group-hover:text-blue-800">
+                          {preset.badge}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleLoadBalancedPreset(4)}
-                    className="w-full px-3.5 py-2 text-right text-xs hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-blue-700 block">نموذج 4: داخلي، فحوصات، عمليات، إفاقة</span>
-                      <span className="text-[10px] text-slate-500">4 ملاحظات</span>
-                    </div>
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">4 بنود</span>
-                  </button>
-
-                  <div className="border-t border-slate-100 mt-1 pt-1">
+                  <div className="border-t border-slate-100 mt-1 pt-1 bg-slate-50/50">
                     <button
                       type="button"
                       onClick={() => handleLoadBalancedPreset()}
                       className="w-full px-3.5 py-2 text-right text-xs text-indigo-700 hover:bg-indigo-50 font-bold flex items-center gap-1.5 cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span>توليد فوري لـ 5 ملاحظات متوازنة عشوائياً</span>
+                      <span>توليد عشوائي لـ 5 ملاحظات متوازنة</span>
                     </button>
                   </div>
                 </div>
@@ -1713,6 +1733,20 @@ export const RoundForm: React.FC<RoundFormProps> = ({
         onSelectMultipleObservations={handleSelectMultipleObservationsFromPicker}
         onAddEmptyRow={() => handleAddObservation()}
         currentDepartment={department}
+      />
+
+      {/* 🌟 Topic Presets Picker Modal for Form Filling 🌟 */}
+      <DefaultRoundTopicPickerModal
+        isOpen={isTopicModalOpen}
+        onClose={() => setIsTopicModalOpen(false)}
+        onSelectTopicPreset={(round) => {
+          setObservations(round.observations);
+          showToast(`⚡ تم تعبئة التقرير بملاحظات: ${round.title}`);
+        }}
+        onLoadObservationsOnly={handleLoadTopicPreset}
+        mode="fill_form"
+        centerName={centerSettings.centerName}
+        inspectorName={inspector}
       />
 
     </form>

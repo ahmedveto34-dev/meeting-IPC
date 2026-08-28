@@ -1,7 +1,13 @@
-import React, { useState } from "react";
-import { X, Building2, Users, Save, RotateCcw, Plus, Trash2, Upload, Download, Sparkles } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Building2, Users, Save, RotateCcw, Plus, Trash2, Upload, Download, Sparkles, FileSpreadsheet, ExternalLink, Check } from "lucide-react";
 import { CenterSettings, Member } from "../types";
 import { DEFAULT_CENTER_SETTINGS } from "../data/seedData";
+import {
+  getGoogleSheetId,
+  setCustomGoogleSheetId,
+  getGoogleSpreadsheetDirectUrl,
+  DEFAULT_GOOGLE_SHEET_ID,
+} from "../utils/googleSheetsSync";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,6 +26,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<CenterSettings>(settings);
   const [newDept, setNewDept] = useState<string>("");
+  const [sheetIdInput, setSheetIdInput] = useState<string>(getGoogleSheetId());
+  const [sheetSaved, setSheetSaved] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSheetIdInput(getGoogleSheetId());
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -72,13 +84,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleResetToDefaults = () => {
     if (window.confirm("هل تريد استعادة البيانات الافتراضية للمركز واللجنة؟")) {
       setFormData(DEFAULT_CENTER_SETTINGS);
+      setSheetIdInput(DEFAULT_GOOGLE_SHEET_ID);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (sheetIdInput.trim()) {
+      setCustomGoogleSheetId(sheetIdInput.trim());
+    }
     onSaveSettings(formData);
     onClose();
+  };
+
+  const handleSaveSheetIdOnly = () => {
+    if (sheetIdInput.trim()) {
+      setCustomGoogleSheetId(sheetIdInput.trim());
+      setSheetSaved(true);
+      setTimeout(() => setSheetSaved(false), 3000);
+    }
   };
 
   return (
@@ -141,6 +165,61 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           )}
+
+          {/* Google Sheets Integration Card */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50/80 rounded-2xl p-4 sm:p-5 border border-emerald-200 space-y-3 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-xs sm:text-sm">
+                    ملف Google Sheets المعتمد للمزامنة
+                  </h4>
+                  <p className="text-[11px] text-emerald-800 font-medium">
+                    يتم ترحيل وحفظ الاجتماعات والمرور الميداني وإحصائيات غسيل الأيدي (WHO) في هذا الملف
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href={getGoogleSpreadsheetDirectUrl(sheetIdInput)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors shrink-0 self-start sm:self-auto"
+              >
+                <span>فتح ملف الشيت</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                معرّف جدول البيانات (Google Spreadsheet ID):
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={sheetIdInput}
+                  onChange={(e) => setSheetIdInput(e.target.value)}
+                  placeholder={DEFAULT_GOOGLE_SHEET_ID}
+                  className="grow text-xs font-mono rounded-lg border border-emerald-300 bg-white p-2.5 font-bold text-slate-900 focus:outline-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveSheetIdOnly}
+                  className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  {sheetSaved ? <Check className="w-3.5 h-3.5" /> : null}
+                  <span>{sheetSaved ? "تم الحفظ ✓" : "تطبيق"}</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                المعرّف الحالي المعتمد: <span className="font-mono font-bold text-slate-700 select-all">{sheetIdInput || DEFAULT_GOOGLE_SHEET_ID}</span>
+              </p>
+            </div>
+          </div>
 
           {/* Center Info */}
           <div className="space-y-4">

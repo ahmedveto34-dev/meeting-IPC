@@ -26,6 +26,7 @@ interface PortalLandingViewProps {
   centerSettings: CenterSettings;
   meetings: Meeting[];
   rounds: RoundReport[];
+  handHygieneSessionsCount?: number;
   onStartNewRound: () => void;
   onStartNewMeeting: () => void;
   onViewMeetingsList: () => void;
@@ -33,6 +34,7 @@ interface PortalLandingViewProps {
   onViewObservationsBank: () => void;
   onViewMonthlyPlan: () => void;
   onViewTopicsLibrary: () => void;
+  onViewHandHygiene?: () => void;
   onOpenAiHelper: () => void;
   onViewMeeting: (meeting: Meeting) => void;
   onViewRound: (round: RoundReport) => void;
@@ -42,6 +44,7 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
   centerSettings,
   meetings,
   rounds,
+  handHygieneSessionsCount = 4,
   onStartNewRound,
   onStartNewMeeting,
   onViewMeetingsList,
@@ -49,6 +52,7 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
   onViewObservationsBank,
   onViewMonthlyPlan,
   onViewTopicsLibrary,
+  onViewHandHygiene,
   onOpenAiHelper,
   onViewMeeting,
   onViewRound,
@@ -112,8 +116,8 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
               <div className="text-[11px] text-slate-300 font-bold mt-0.5">اجتماعات شهرية</div>
             </div>
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-              <div className="text-2xl sm:text-3xl font-black text-amber-300 drop-shadow-sm">{TODAY_ADDED_OBSERVATION_IDS.length}</div>
-              <div className="text-[11px] text-amber-200 font-bold mt-0.5">ملخص اليوم</div>
+              <div className="text-2xl sm:text-3xl font-black text-orange-400 drop-shadow-sm">{handHygieneSessionsCount}</div>
+              <div className="text-[11px] text-orange-200 font-bold mt-0.5">جلسات غسيل أيدي WHO</div>
             </div>
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="text-2xl sm:text-3xl font-black text-emerald-400 drop-shadow-sm">100+</div>
@@ -123,129 +127,182 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
         </div>
       </div>
 
-      {/* 🌟 TWO PRIMARY ACTION PATHWAYS (المرور الميداني الجديد vs الاجتماع الشهري) 🌟 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+      {/* 🌟 THREE PRIMARY ACTION PATHWAYS (المرور الميداني + الاجتماع الشهري + إحصائية غسيل الأيدي WHO) 🌟 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-7">
         
         {/* PATHWAY 1: New Field Round Report (المرور الميداني) */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-sky-200/90 hover:border-blue-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 group flex flex-col justify-between relative overflow-hidden">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-sky-200/90 hover:border-blue-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 group flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 left-0 h-2.5 bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600" />
           
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-2 transition-all duration-300 shadow-lg shadow-blue-500/30">
-                <ClipboardCheck className="w-9 h-9 stroke-[2.2]" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-2 transition-all duration-300 shadow-lg shadow-blue-500/30">
+                <ClipboardCheck className="w-8 h-8 stroke-[2.2]" />
               </div>
-              <span className="text-xs font-black px-3.5 py-1.2 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs">
+              <span className="text-xs font-black px-3.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs">
                 جولة ميدانية تفقدية
               </span>
             </div>
 
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                الدخول لعمل مرور ميداني جديد
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors">
+                الدخول لعمل مرور ميداني
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                تسجيل ورصد ملاحظات المرور على الأقسام والعيادات، اختيار بنود التقييم من بنك الملاحظات المعتمدة والملخص بنقرة واحدة، وتحديد الإجراءات التصحيحية والمسؤولين.
+              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                تسجيل ورصد ملاحظات المرور على الأقسام والعيادات، اختيار بنود التقييم من بنك الملاحظات والملخص بنقرة واحدة.
               </p>
             </div>
 
             {/* Key Features Bullet List */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 space-y-2.5 border border-slate-200 text-xs">
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>إمكانية اختيار الملاحظات مباشرة من ملخص اليوم (35 ملاحظة)</span>
+            <div className="bg-slate-50/80 rounded-2xl p-3.5 space-y-2 border border-slate-200 text-xs">
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>اختيار الملاحظات مباشرة من ملخص اليوم</span>
               </div>
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>بنك ملاحظات مصنف (عيادات، فحوصات، عمليات، إفاقة، تعقيم...)</span>
-              </div>
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>اقتراح فوري للإجراء التصحيحي والتوصيات ومسؤول التنفيذ</span>
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>بنك ملاحظات مصنف (عيادات، عمليات، تعقيم...)</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 space-y-3">
+          <div className="pt-5 space-y-2.5">
             <button
               type="button"
               onClick={onStartNewRound}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-[1.01] active:scale-98 transition-all cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:scale-[1.01] active:scale-98 transition-all cursor-pointer"
             >
-              <PlusCircle className="w-5 h-5 stroke-[2.5]" />
-              <span>بدء تسجيل تقرير مرور جديد الآن</span>
-              <ArrowLeft className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+              <span>تسجيل تقرير مرور جديد</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
             </button>
 
             <button
               type="button"
               onClick={onViewRoundsList}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100/80 hover:bg-slate-200/90 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full py-2 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/90 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <History className="w-3.5 h-3.5 text-blue-600" />
-              <span>استعراض سجل تقارير المرور السابقة ({rounds.length})</span>
+              <span>استعراض تقارير المرور ({rounds.length})</span>
             </button>
           </div>
         </div>
 
         {/* PATHWAY 2: New Monthly Meeting (الاجتماع الشهري للجنة) */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200/90 hover:border-indigo-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10 group flex flex-col justify-between relative overflow-hidden">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-indigo-200/90 hover:border-indigo-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-indigo-500/10 group flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 left-0 h-2.5 bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500" />
           
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 text-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-2 transition-all duration-300 shadow-lg shadow-indigo-500/30">
-                <FileText className="w-9 h-9 stroke-[2.2]" />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 text-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-2 transition-all duration-300 shadow-lg shadow-indigo-500/30">
+                <FileText className="w-8 h-8 stroke-[2.2]" />
               </div>
-              <span className="text-xs font-black px-3.5 py-1.2 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200/80 shadow-2xs">
+              <span className="text-xs font-black px-3.5 py-1 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200/80 shadow-2xs">
                 محضر اجتماع رسمي
               </span>
             </div>
 
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1.5 group-hover:text-indigo-600 transition-colors">
                 الدخول لعمل اجتماع شهري
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                إعداد محضر اجتماع لجنة مكافحة العدوى، إدراج جدول الأعمال، ترحيل ما لم يتم إنجازه من الاجتماع السابق أولاً، استيراد موضوعات الخطة وملاحظات المرور.
+              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                إعداد محضر اجتماع لجنة مكافحة العدوى، إدراج جدول الأعمال، ترحيل ما لم يتم إنجازه من الاجتماع السابق أولاً.
               </p>
             </div>
 
             {/* Key Features Bullet List */}
-            <div className="bg-slate-50/80 rounded-2xl p-4 space-y-2.5 border border-slate-200 text-xs">
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>إدراج تلقائي للبند الأول: (ما لم يتم إنجازه من الاجتماع السابق)</span>
+            <div className="bg-slate-50/80 rounded-2xl p-3.5 space-y-2 border border-slate-200 text-xs">
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>إدراج تلقائي للبند الأول (المرحل السابق)</span>
               </div>
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>استيراد مباشر لملاحظات المرور الميداني وتحويلها لقرارات</span>
-              </div>
-              <div className="flex items-center gap-2.5 font-bold text-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>مؤشرات الأداء (KPIs) ونماذج جاهزة لكافة شهور السنة الـ 12</span>
+              <div className="flex items-center gap-2 font-bold text-slate-800">
+                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>استيراد موضوعات الخطة وملاحظات المرور</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 space-y-3">
+          <div className="pt-5 space-y-2.5">
             <button
               type="button"
               onClick={onStartNewMeeting}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.01] active:scale-98 transition-all cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 hover:scale-[1.01] active:scale-98 transition-all cursor-pointer"
             >
-              <PlusCircle className="w-5 h-5 stroke-[2.5]" />
-              <span>بدء إعداد محضر اجتماع شهري جديد</span>
-              <ArrowLeft className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+              <span>إعداد محضر اجتماع جديد</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
             </button>
 
             <button
               type="button"
               onClick={onViewMeetingsList}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-100/80 hover:bg-slate-200/90 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full py-2 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/90 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <History className="w-3.5 h-3.5 text-indigo-600" />
-              <span>استعراض سجل محاضر الاجتماعات السابقة ({meetings.length})</span>
+              <span>استعراض سجل الاجتماعات ({meetings.length})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* PATHWAY 3: WHO Hand Hygiene Compliance (إحصائية غسيل الأيدي طبقا لمنظمة الصحة العالمية) */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-amber-300 hover:border-orange-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-orange-500/10 group flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-white via-amber-50/20 to-orange-50/30">
+          <div className="absolute top-0 right-0 left-0 h-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-red-600" />
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-600 to-red-600 text-white flex items-center justify-center group-hover:scale-110 group-hover:rotate-2 transition-all duration-300 shadow-lg shadow-orange-500/30">
+                <Sparkles className="w-8 h-8 text-amber-200 stroke-[2.2]" />
+              </div>
+              <span className="text-xs font-black px-3 py-1 rounded-full bg-orange-100 text-orange-950 border border-orange-300 shadow-2xs">
+                معايير WHO الرسمية
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5 text-orange-700 text-xs font-black mb-1">
+                <span>SAVE LIVES: Clean Your Hands</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 mb-1.5 group-hover:text-orange-600 transition-colors">
+                إحصائية غسيل الأيدي (WHO)
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                رصد دواعي الغسيل الخمسة (5 Moments)، حساب معدلات الامتثال للفئات المهنية (Page 3)، ونسب الدواعي (Page 4) بنفس تنسيق الـ PDF المعتمد.
+              </p>
+            </div>
+
+            {/* Key Features Bullet List */}
+            <div className="bg-amber-50/90 rounded-2xl p-3.5 space-y-2 border border-amber-200/80 text-xs">
+              <div className="flex items-center gap-2 font-bold text-amber-950">
+                <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                <span>معدل الامتثال: (Actions / Opportunities) × 100</span>
+              </div>
+              <div className="flex items-center gap-2 font-bold text-amber-950">
+                <CheckCircle2 className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                <span>نماذج واستمارات رصد جاهزة للطباعة والتصدير</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-5 space-y-2.5">
+            <button
+              type="button"
+              onClick={onViewHandHygiene}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 hover:from-orange-700 hover:to-amber-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/30 hover:scale-[1.01] active:scale-98 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200" />
+              <span>الدخول لإحصائية ونماذج غسيل الأيدي</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={onViewHandHygiene}
+              className="w-full py-2 px-3 rounded-xl bg-orange-100/70 hover:bg-orange-200/80 text-orange-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-orange-200"
+            >
+              <FileDown className="w-3.5 h-3.5 text-orange-700" />
+              <span>استعراض جداول الحساب المعتمدة ({handHygieneSessionsCount} جلسات)</span>
             </button>
           </div>
         </div>
@@ -319,6 +376,25 @@ export const PortalLandingView: React.FC<PortalLandingViewProps> = ({
             <div>
               <div className="font-black text-slate-900 text-xs sm:text-sm group-hover:text-purple-700">مكتبة الموضوعات الطبية</div>
               <div className="text-[11px] text-slate-500 font-medium mt-0.5">حزم جاهزة بجدول الأعمال والـ KPIs</div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onViewHandHygiene}
+            className="p-4 rounded-2xl border-2 border-orange-100 bg-gradient-to-br from-amber-50/80 to-orange-50/50 hover:border-orange-400 hover:from-amber-100/90 hover:to-orange-100/70 text-right transition-all cursor-pointer flex flex-col justify-between gap-3 group shadow-2xs hover:shadow-md hover:scale-[1.02]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/25 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-4 h-4 text-amber-200" />
+              </div>
+              <span className="text-[10px] font-black text-orange-950 bg-orange-200/90 px-2 py-0.5 rounded-full border border-orange-300">
+                WHO Standard
+              </span>
+            </div>
+            <div>
+              <div className="font-black text-slate-900 text-xs sm:text-sm group-hover:text-orange-700">إحصائية غسيل الأيدي (WHO)</div>
+              <div className="text-[11px] text-slate-500 font-medium mt-0.5">حساب الامتثال لـ 5 دواعي والمهن</div>
             </div>
           </button>
 
